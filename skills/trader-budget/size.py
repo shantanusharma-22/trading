@@ -94,10 +94,16 @@ def size_trade(plan, config, apply_dynamic=False):
     entry = plan["entry"]
     stop = plan["stop"]
     target = plan["target"]
+    side = plan.get("side", "BUY").upper()
 
-    risk_per_share = entry - stop
-    if risk_per_share <= 0:
-        raise ValueError(f"Stop loss (Rs {stop:.2f}) must be strictly below entry (Rs {entry:.2f})")
+    if side == "SELL":
+        risk_per_share = stop - entry
+        if risk_per_share <= 0:
+            raise ValueError(f"Stop loss (Rs {stop:.2f}) must be strictly above entry (Rs {entry:.2f}) for SELL order")
+    else:
+        risk_per_share = entry - stop
+        if risk_per_share <= 0:
+            raise ValueError(f"Stop loss (Rs {stop:.2f}) must be strictly below entry (Rs {entry:.2f}) for BUY order")
 
     budget = config.get("budget", 100000.0)
     base_max_loss = config.get("max_loss_per_trade_inr", 1000.0)
@@ -151,13 +157,16 @@ def size_trade(plan, config, apply_dynamic=False):
     loss_charges = calculate_intraday_charges(entry, stop, qty, brk_fee, slip_pct)
 
     actual_loss_at_stop = round((risk_per_share * qty) + loss_charges["total_charges"], 2)
-    actual_gain_at_target = round(((target - entry) * qty) - win_charges["total_charges"], 2)
+    if side == "SELL":
+        actual_gain_at_target = round(((entry - target) * qty) - win_charges["total_charges"], 2)
+    else:
+        actual_gain_at_target = round(((target - entry) * qty) - win_charges["total_charges"], 2)
 
     order_spec = {
         "symbol": sym,
         "exchange": config.get("exchange", "NSE"),
         "product": config.get("product", "MIS"),
-        "side": "BUY",
+        "side": side,
         "qty": qty,
         "entry_price": entry,
         "stop_loss_price": stop,

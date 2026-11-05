@@ -289,3 +289,37 @@ def record_closed_trade(symbol: str, exit_price: float, pnl: float, now_ist: dat
         save_json(path, b_data)
         return True
 
+
+def normalize_holding(sym: str, raw_holding) -> dict:
+    """Validates and enforces the universal holdings schema across broker and portfolio."""
+    if isinstance(raw_holding, (int, float)):
+        return {
+            "symbol": sym,
+            "qty": int(raw_holding),
+            "entry_price": 0.0,
+            "side": "BUY",
+            "stop": 0.0,
+            "target": 0.0,
+            "current_price": 0.0,
+            "margin_used": 0.0,
+            "strategy": "manual",
+            "placed_at": "",
+            "pnl": 0.0
+        }
+    if isinstance(raw_holding, dict):
+        return {
+            "symbol": raw_holding.get("symbol", sym),
+            "qty": int(raw_holding.get("qty", 1)),
+            "entry_price": float(raw_holding.get("entry_price", 0.0)),
+            "side": raw_holding.get("side", "BUY").upper(),
+            "stop": float(raw_holding.get("stop", 0.0)),
+            "target": float(raw_holding.get("target", 0.0)),
+            "current_price": float(raw_holding.get("current_price", raw_holding.get("entry_price", 0.0))),
+            "margin_used": float(raw_holding.get("margin_used", 0.0)),
+            "strategy": raw_holding.get("strategy", "manual"),
+            "placed_at": str(raw_holding.get("placed_at", "")),
+            "pnl": float(raw_holding.get("pnl", 0.0))
+        }
+    return {}
+
+

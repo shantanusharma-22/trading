@@ -39,33 +39,40 @@ def fetch_live_price(sym):
         return 0.0
 
 
-def emergency_flatten_all():
-    """PANIC BUTTON: Immediately market-exit all open positions and restore portfolio to cash."""
+def emergency_flatten_all() -> bool:
+    """PANIC BUTTON: Immediately market-exit all open positions and restore portfolio to cash.
+    Thread-safe and atomic under STATE_LOCK.
+    """
     if not os.path.exists(DEFAULT_PORTFOLIO_FILE):
         print("No portfolio found to flatten.")
-        return
+        return True
 
-    with open(DEFAULT_PORTFOLIO_FILE, "r", encoding="utf-8") as f:
-        p = json.load(f)
-
+    p = load_json(DEFAULT_PORTFOLIO_FILE)
     holdings = p.get("holdings", {})
     if not holdings:
         print("No open positions to flatten. Portfolio is already 100% in cash.")
-        return
+        return True
 
     print("==================================================")
-    print("🚨 EMERGENCY PANIC FLATTEN EXECUTING (100% CASH) 🚨")
+    print("EMERGENCY PANIC FLATTEN EXECUTING (100% CASH)")
     print("==================================================")
 
     now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
     total_recovered_cash = 0.0
     closed_positions = []
 
-    for sym, qty in list(holdings.items()):
+    for sym, h in list(holdings.items()):
+        if isinstance(h, dict):
+            qty = int(h.get("qty", 0))
+            entry_p = float(h.get("entry_price", 0.0))
+        else:
+            qty = int(h)
+            entry_p = 0.0
+
         if qty > 0:
             price = fetch_live_price(sym)
             if price <= 0:
-                price = 1000.0  # fallback estimation
+                price = entry_p if entry_p > 0 else 0.0
             realized_val = round(price * qty, 2)
             total_recovered_cash += realized_val
             closed_positions.append({"symbol": sym, "qty": qty, "price": price, "val": realized_val})
@@ -73,19 +80,11 @@ def emergency_flatten_all():
 
     p["cash"] = round(p.get("cash", 0.0) + total_recovered_cash, 2)
     p["holdings"] = {}
-
-    with open(DEFAULT_PORTFOLIO_FILE, "w", encoding="utf-8") as f:
-        json.dump(p, f, indent=2)
+    save_json(DEFAULT_PORTFOLIO_FILE, p)
 
     # Log to broker state
     d_str = now_ist.strftime("%Y-%m-%d")
-    b_state = {}
-    if os.path.exists(DEFAULT_BROKER_STATE):
-        try:
-            with open(DEFAULT_BROKER_STATE, "r", encoding="utf-8") as f:
-                b_state = json.load(f)
-        except Exception:
-            pass
+    b_state = load_json(DEFAULT_BROKER_STATE) if os.path.exists(DEFAULT_BROKER_STATE) else {}
 
     day_entry = b_state.setdefault(d_str, {"trades_today": [], "orders_placed": []})
     for cp in closed_positions:
@@ -95,13 +94,13 @@ def emergency_flatten_all():
             "status": "EMERGENCY_FLATTENED"
         })
 
-    with open(DEFAULT_BROKER_STATE, "w", encoding="utf-8") as f:
-        json.dump(b_state, f, indent=2)
+    save_json(DEFAULT_BROKER_STATE, b_state)
 
     print("--------------------------------------------------")
     print(f"All positions flattened cleanly at {now_ist.strftime('%H:%M:%S IST')}.")
     print(f"Updated Cash Balance: Rs {p['cash']:,.2f}")
     print("==================================================")
+    return True
 
 
 def show_dashboard():

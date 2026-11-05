@@ -56,7 +56,6 @@ STRATEGY_REGISTRY = {
         "num": 1,
         "name": "Opening Range Breakout (ORB 15m)",
         "style": "Breakout / Momentum",
-        "win_rate": "54% - 58%",
         "risk_reward": "1 : 1.8",
         "optimal_regime": "High Beta / Trending Openings",
         "timeframe": "5m / 15m",
@@ -68,7 +67,6 @@ STRATEGY_REGISTRY = {
         "num": 2,
         "name": "Previous Day High / Low Breakout (PDH/PDL)",
         "style": "Breakout / Momentum",
-        "win_rate": "52% - 56%",
         "risk_reward": "1 : 2.0",
         "optimal_regime": "Breakout / Price Discovery Days",
         "timeframe": "5m / 15m",
@@ -80,7 +78,6 @@ STRATEGY_REGISTRY = {
         "num": 3,
         "name": "Gap-and-Go / Gap-Fill",
         "style": "Breakout / Momentum",
-        "win_rate": "50% - 55%",
         "risk_reward": "1 : 2.2",
         "optimal_regime": "News & Earnings Gaps (>1.0%)",
         "timeframe": "5m / 15m",
@@ -92,7 +89,6 @@ STRATEGY_REGISTRY = {
         "num": 4,
         "name": "Volume Breakout / NR7 & Inside Bar",
         "style": "Breakout / Momentum",
-        "win_rate": "58% - 62%",
         "risk_reward": "1 : 2.5",
         "optimal_regime": "Post-Consolidation Squeeze Expansion",
         "timeframe": "5m / Daily",
@@ -104,7 +100,6 @@ STRATEGY_REGISTRY = {
         "num": 5,
         "name": "Intraday VWAP Pullback",
         "style": "Trend-Following",
-        "win_rate": "62% - 66%",
         "risk_reward": "1 : 1.5",
         "optimal_regime": "Steady Institutional Trending Days",
         "timeframe": "5m",
@@ -116,7 +111,6 @@ STRATEGY_REGISTRY = {
         "num": 6,
         "name": "9 / 20 EMA Crossover",
         "style": "Trend-Following",
-        "win_rate": "48% - 52%",
         "risk_reward": "1 : 2.5",
         "optimal_regime": "Strong Directional Momentum Moves",
         "timeframe": "5m / 15m",
@@ -128,7 +122,6 @@ STRATEGY_REGISTRY = {
         "num": 7,
         "name": "Supertrend (10, 3)",
         "style": "Trend-Following",
-        "win_rate": "50% - 54%",
         "risk_reward": "1 : 2.0",
         "optimal_regime": "High-Volatility Directional Trends",
         "timeframe": "5m",
@@ -140,7 +133,6 @@ STRATEGY_REGISTRY = {
         "num": 8,
         "name": "20 EMA Retest + RSI Filter",
         "style": "Trend-Following",
-        "win_rate": "56% - 60%",
         "risk_reward": "1 : 1.8",
         "optimal_regime": "Healthy Retracements in Bull/Bear Runs",
         "timeframe": "5m / 15m",
@@ -152,7 +144,6 @@ STRATEGY_REGISTRY = {
         "num": 9,
         "name": "RSI(14) Divergence & Extremes",
         "style": "Reversal / Mean-Reversion",
-        "win_rate": "55% - 60%",
         "risk_reward": "1 : 2.2",
         "optimal_regime": "Overextended Rallies / Sell-offs at Key S/R",
         "timeframe": "15m",
@@ -164,7 +155,6 @@ STRATEGY_REGISTRY = {
         "num": 10,
         "name": "Bollinger Bands Squeeze & Snap-Back",
         "style": "Reversal / Mean-Reversion",
-        "win_rate": "60% - 65%",
         "risk_reward": "1 : 1.4",
         "optimal_regime": "Range-Bound Sideways / Low-VIX Markets",
         "timeframe": "5m / 15m",
@@ -176,7 +166,6 @@ STRATEGY_REGISTRY = {
         "num": 11,
         "name": "Central Pivot Range (CPR) & Camarilla",
         "style": "Reversal / Mean-Reversion",
-        "win_rate": "60% - 64%",
         "risk_reward": "1 : 1.7",
         "optimal_regime": "Narrow CPR (Trend) vs Wide CPR (Range)",
         "timeframe": "5m",
@@ -188,7 +177,6 @@ STRATEGY_REGISTRY = {
         "num": 12,
         "name": "1m-3m Micro Scalper",
         "style": "Scalping",
-        "win_rate": "65% - 70%",
         "risk_reward": "1 : 1.0",
         "optimal_regime": "High Liquidity / Ultra-Tight Bid-Ask Spreads",
         "timeframe": "1m - 3m",
@@ -200,7 +188,7 @@ STRATEGY_REGISTRY = {
         "num": 13,
         "name": "Expiry-Day Option Delta Burst",
         "style": "Options / Derivatives",
-        "win_rate": "45% - 50%",
+        "analysis_only": True,
         "risk_reward": "1 : 3.5",
         "optimal_regime": "Weekly Expiry Days (Thursday/Friday) Post-10:30",
         "timeframe": "5m",
@@ -212,7 +200,7 @@ STRATEGY_REGISTRY = {
         "num": 14,
         "name": "OTM Strangle / Iron Condor Decay",
         "style": "Options / Derivatives",
-        "win_rate": "72% - 78%",
+        "analysis_only": True,
         "risk_reward": "1 : 0.8",
         "optimal_regime": "Low India VIX (<13.0) & Sideways CPR",
         "timeframe": "Intraday Decay",
@@ -224,7 +212,7 @@ STRATEGY_REGISTRY = {
         "num": 15,
         "name": "9:20 AM Rule-Based Straddle (920 Straddle)",
         "style": "Options / Derivatives",
-        "win_rate": "62% - 66%",
+        "analysis_only": True,
         "risk_reward": "1 : 1.2",
         "optimal_regime": "Non-trending openings / Mean-Reverting Days",
         "timeframe": "09:20 - 15:10 IST",
@@ -236,7 +224,7 @@ STRATEGY_REGISTRY = {
         "num": 16,
         "name": "Open Interest (OI) & Max Pain Gravitation",
         "style": "Options / Derivatives",
-        "win_rate": "58% - 62%",
+        "analysis_only": True,
         "risk_reward": "1 : 1.6",
         "optimal_regime": "Afternoon Expiry Sessions (13:00 - 15:30)",
         "timeframe": "15m / Expiry Hourly",
@@ -248,7 +236,6 @@ STRATEGY_REGISTRY = {
         "num": 17,
         "name": "Results & News Momentum Reaction",
         "style": "Event / Flow",
-        "win_rate": "48% - 52%",
         "risk_reward": "1 : 2.5",
         "optimal_regime": "Quarterly Earnings / RBI Policy Announcements",
         "timeframe": "5m",
@@ -260,7 +247,7 @@ STRATEGY_REGISTRY = {
         "num": 18,
         "name": "Sector Momentum Leader",
         "style": "Event / Flow",
-        "win_rate": "58% - 62%",
+        "analysis_only": True,
         "risk_reward": "1 : 2.0",
         "optimal_regime": "Sectoral Rotation Days",
         "timeframe": "15m",
@@ -272,7 +259,7 @@ STRATEGY_REGISTRY = {
         "num": 19,
         "name": "FII/DII Institutional Flow + GIFT Nifty Bias",
         "style": "Event / Flow",
-        "win_rate": "54% - 58%",
+        "analysis_only": True,
         "risk_reward": "1 : 1.8",
         "optimal_regime": "Morning Openings (09:15 - 10:30 IST)",
         "timeframe": "Pre-Market / 15m",
@@ -284,7 +271,6 @@ STRATEGY_REGISTRY = {
         "num": 20,
         "name": "Vyapar Institutional Confluence (AIC-20)",
         "style": "Custom Multi-Factor",
-        "win_rate": "68% - 74%",
         "risk_reward": "1 : 2.2",
         "optimal_regime": "All Indian Market Regimes (Filtered Confluence)",
         "timeframe": "5m / 15m",
@@ -1087,14 +1073,15 @@ def eval_options_920_straddle(candles):
 
 
 def eval_options_max_pain(symbol="NIFTY"):
-    """16. Open Interest (OI) & Max Pain Gravitation (Model)."""
-    # Synthetic / representative calculation for Indian indices
+    """16. Open Interest (OI) & Max Pain Gravitation (Analysis Only)."""
     return {
         "signal": "NEUTRAL",
-        "pcr": 1.05,
-        "max_pain_strike": "ATM Pinning",
-        "confidence": "MEDIUM",
-        "reason": "PCR 1.05 in neutral equilibrium. Index gravitating toward highest OI cluster before 15:10 expiry"
+        "raw_signal": "NEUTRAL",
+        "score": 0,
+        "is_executable": False,
+        "confidence": "LOW",
+        "status": "NOT IMPLEMENTED (analysis only)",
+        "reason": "Real-time NSE Options Chain API required for live Max Pain / PCR calculations. Marked analysis only."
     }
 
 
@@ -1131,33 +1118,32 @@ def eval_news_results(candles):
 
 
 def eval_sector_momentum(symbol="TCS.NS"):
-    """18. Sector Momentum Leader."""
-    it_stocks = ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS"]
-    bank_stocks = ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS"]
-
-    sector = "IT" if symbol in it_stocks else ("BANKING" if symbol in bank_stocks else "CORE")
+    """18. Sector Momentum Leader (Analysis Only)."""
     return {
-        "signal": "BUY" if sector in ("IT", "BANKING") else "NEUTRAL",
-        "sector": sector,
-        "confidence": "HIGH",
-        "reason": f"Leading constituent in {sector} sector displaying intraday relative strength vs Nifty 50"
+        "signal": "NEUTRAL",
+        "raw_signal": "NEUTRAL",
+        "score": 0,
+        "is_executable": False,
+        "confidence": "LOW",
+        "status": "NOT IMPLEMENTED (analysis only)",
+        "reason": "Multi-symbol sector relative strength matrix not connected to live feed. Marked analysis only."
     }
 
 
 def eval_fiidii_flow():
-    """19. FII/DII Institutional Flow + GIFT Nifty Global Bias."""
+    """19. FII/DII Institutional Flow + GIFT Nifty Global Bias (Analysis Only)."""
     return {
-        "signal": "BUY",
-        "fii_net_crores": +642.50,
-        "dii_net_crores": +1280.00,
-        "gift_nifty_premium": "+45 pts",
-        "bias": "BULLISH ACCUMULATION",
-        "confidence": "HIGH",
-        "reason": "DII + FII net buyers (>₹1,900 Cr) with positive overnight GIFT Nifty premium"
+        "signal": "NEUTRAL",
+        "raw_signal": "NEUTRAL",
+        "score": 0,
+        "is_executable": False,
+        "confidence": "LOW",
+        "status": "NOT IMPLEMENTED (analysis only)",
+        "reason": "Official SEBI/NSE end-of-day FII/DII reporting feed required. Marked analysis only."
     }
 
 
-def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
+def eval_aic_confluence(symbol, candles, prev_bar, vix=None, breadth_ratio=None):
     """20. CUSTOM: Vyapar Institutional Confluence (AIC-20) Master Model.
     Scores setups from 0 to 100 points across 6 uncorrelated institutional pillars:
       1. Microstructure CPR (15 pts)
@@ -1166,118 +1152,270 @@ def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
       4. Volume Fuel (15 pts)
       5. Market Breadth (15 pts)
       6. India VIX Regime (15 pts)
-    Executes BUY/SELL only when Score >= 80 points.
+    Executes BUY/SELL only when Score >= 80 points with direction-aligned confluence.
+    No free points awarded for non-aligned pillars.
     """
-    if not candles or len(candles) < 5:
+    # Drop still-forming candle if more than 1 candle exists
+    completed_candles = candles[:-1] if candles and len(candles) > 1 else (candles or [])
+    if len(completed_candles) < 10:
         return {
+            "strategy_id": "aic_confluence",
+            "strategy_name": "Vyapar Institutional Confluence (AIC-20)",
             "signal": "NEUTRAL",
+            "raw_signal": "NEUTRAL",
             "score": 0,
+            "threshold": 80,
+            "is_executable": False,
             "confidence": "LOW",
-            "factors": ["Insufficient intraday candle history"],
-            "reason": "Awaiting market data"
+            "entry": 0.0,
+            "stop": 0.0,
+            "target": 0.0,
+            "pillars": {
+                "cpr": {"pts": 0, "max": 15, "name": "CPR", "desc": "Insufficient candle data"},
+                "vwap": {"pts": 0, "max": 20, "name": "VWAP", "desc": "Insufficient candle data"},
+                "trend": {"pts": 0, "max": 20, "name": "Trend", "desc": "Insufficient candle data"},
+                "volume": {"pts": 0, "max": 15, "name": "Volume", "desc": "Insufficient candle data"},
+                "breadth": {"pts": 0, "max": 15, "name": "Breadth", "desc": "Insufficient candle data"},
+                "vix": {"pts": 0, "max": 15, "name": "VIX", "desc": "Insufficient candle data"}
+            },
+            "factors": ["Insufficient completed candle history (need >= 10 bars)"],
+            "reason": "Insufficient completed candle history (need >= 10 bars)"
         }
 
-    curr = candles[-1]
-    curr_c = curr["close"]
-    score = 0
-    factors = []
-    bull_votes = 0
-    bear_votes = 0
+    curr = completed_candles[-1]
+    curr_c = float(curr["close"])
 
-    # Pillar 1: CPR Microstructure (15 pts)
-    if prev_bar:
-        cpr = calculate_cpr_camarilla(prev_bar["high"], prev_bar["low"], prev_bar["close"])
-        if cpr["is_narrow"]:
-            score += 15
-            factors.append(f"Narrow CPR ({cpr['cpr_width_pct']:.2f}%) Trend Day (+15 pts)")
-            if curr_c > cpr["tc"]:
-                bull_votes += 2
-            elif curr_c < cpr["bc"]:
-                bear_votes += 2
-        else:
-            score += 8
-            factors.append(f"Moderate CPR ({cpr['cpr_width_pct']:.2f}%) (+8 pts)")
+    # Indicators from completed candles
+    vwaps = calculate_vwap(completed_candles)
+    curr_vwap = vwaps[-1] if vwaps else curr_c
 
-    # Pillar 2: Institutional VWAP Benchmark (20 pts)
-    vwaps = calculate_vwap(candles)
-    curr_vwap = vwaps[-1]
-    dist_vwap_pct = (curr_c - curr_vwap) / curr_vwap * 100.0
+    st = calculate_supertrend(completed_candles)
+    closes = [float(c["close"]) for c in completed_candles]
+    ema9 = calculate_ema(closes, 9)[-1] if len(closes) >= 9 else curr_c
+    ema20 = calculate_ema(closes, 20)[-1] if len(closes) >= 20 else curr_c
 
-    if curr_c > curr_vwap:
-        bull_votes += 2
-        score += 20
-        factors.append(f"Price above Institutional VWAP ₹{curr_vwap:.2f} (+{dist_vwap_pct:.2f}%) (+20 pts)")
-    else:
-        bear_votes += 2
-        score += 20
-        factors.append(f"Price below Institutional VWAP ₹{curr_vwap:.2f} ({dist_vwap_pct:.2f}%) (+20 pts)")
-
-    # Pillar 3: Trend Momentum (Supertrend & 9/20 EMA) (20 pts)
-    st = calculate_supertrend(candles)
-    closes = [c["close"] for c in candles]
-    ema9 = calculate_ema(closes, 9)[-1]
-    ema20 = calculate_ema(closes, 20)[-1]
-
-    if st["trend"] == 1 and ema9 >= ema20:
-        bull_votes += 3
-        score += 20
-        factors.append("Supertrend GREEN & 9 EMA > 20 EMA aligned (+20 pts)")
-    elif st["trend"] == -1 and ema9 <= ema20:
-        bear_votes += 3
-        score += 20
-        factors.append("Supertrend RED & 9 EMA < 20 EMA aligned (+20 pts)")
-    else:
-        score += 10
-        factors.append("Mixed trend indicators (+10 pts)")
-
-    # Pillar 4: Volume Fuel (15 pts)
-    vols = [float(c.get("volume", 1)) for c in candles]
+    vols = [float(c.get("volume", 0)) for c in completed_candles]
     avg_v = sum(vols[-20:]) / min(len(vols), 20) if vols else 1.0
-    v_ratio = (curr.get("volume", 1) / avg_v) if avg_v > 0 else 1.0
+    v_ratio = (curr.get("volume", 0) / avg_v) if avg_v > 0 else 1.0
 
+    cpr = calculate_cpr_camarilla(prev_bar["high"], prev_bar["low"], prev_bar["close"]) if prev_bar else None
+
+    # Resolve real VIX and breadth
+    v_val = vix if (vix is not None and vix > 0) else 0.0
+    b_val = breadth_ratio if (breadth_ratio is not None and breadth_ratio > 0) else 1.0
+
+    # -------------------------------------------------------------
+    # Evaluate Direction-Aligned Confluence (Strictly NO Free Points)
+    # -------------------------------------------------------------
+    # 1. Long Candidate (BUY)
+    long_pts = 0
+    long_pillars = {}
+    long_factors = []
+
+    # CPR
+    if cpr and curr_c > cpr["tc"]:
+        pts = 15 if cpr["is_narrow"] else 7
+        long_pts += pts
+        long_pillars["cpr"] = {"pts": pts, "max": 15, "name": "CPR", "desc": f"Above CPR TC Rs {cpr['tc']:.2f} ({'Narrow' if cpr['is_narrow'] else 'Normal'})"}
+        long_factors.append(f"Price above CPR TC (+{pts} pts)")
+    else:
+        long_pillars["cpr"] = {"pts": 0, "max": 15, "name": "CPR", "desc": "Inside or below CPR TC (0 pts)"}
+
+    # VWAP (Strictly NO free points if price <= VWAP)
+    if curr_c > curr_vwap:
+        long_pts += 20
+        dist = ((curr_c - curr_vwap) / curr_vwap) * 100.0
+        long_pillars["vwap"] = {"pts": 20, "max": 20, "name": "VWAP", "desc": f"Above VWAP Rs {curr_vwap:.2f} (+{dist:.2f}%)"}
+        long_factors.append("Price above Institutional VWAP (+20 pts)")
+    else:
+        long_pillars["vwap"] = {"pts": 0, "max": 20, "name": "VWAP", "desc": f"Price below VWAP Rs {curr_vwap:.2f} (0 pts)"}
+
+    # Trend (Supertrend & EMA)
+    if st["trend"] == 1 and ema9 >= ema20:
+        long_pts += 20
+        long_pillars["trend"] = {"pts": 20, "max": 20, "name": "Trend", "desc": "Supertrend GREEN & 9 EMA >= 20 EMA"}
+        long_factors.append("Supertrend GREEN & 9 EMA > 20 EMA (+20 pts)")
+    elif st["trend"] == 1 or ema9 >= ema20:
+        long_pts += 8
+        long_pillars["trend"] = {"pts": 8, "max": 20, "name": "Trend", "desc": "Partial bullish trend alignment"}
+        long_factors.append("Partial bullish trend (+8 pts)")
+    else:
+        long_pillars["trend"] = {"pts": 0, "max": 20, "name": "Trend", "desc": "Bearish trend alignment (0 pts)"}
+
+    # Volume Fuel
     if v_ratio >= 1.3:
-        score += 15
-        factors.append(f"Strong Volume Fuel: {v_ratio:.1f}x of 20-SMA (+15 pts)")
-    elif v_ratio >= 1.0:
-        score += 10
-        factors.append(f"Normal Volume: {v_ratio:.1f}x (+10 pts)")
+        long_pts += 15
+        long_pillars["volume"] = {"pts": 15, "max": 15, "name": "Volume", "desc": f"Strong volume surge {v_ratio:.1f}x"}
+        long_factors.append(f"Volume surge {v_ratio:.1f}x (+15 pts)")
+    elif v_ratio >= 1.15:
+        long_pts += 8
+        long_pillars["volume"] = {"pts": 8, "max": 15, "name": "Volume", "desc": f"Above average volume {v_ratio:.1f}x"}
+        long_factors.append(f"Above-average volume {v_ratio:.1f}x (+8 pts)")
     else:
-        score += 5
-        factors.append(f"Subdued Volume: {v_ratio:.1f}x (+5 pts)")
+        long_pillars["volume"] = {"pts": 0, "max": 15, "name": "Volume", "desc": f"Subdued volume {v_ratio:.1f}x (0 pts)"}
 
-    # Pillar 5: Market Breadth (15 pts)
-    if breadth_ratio >= 1.25:
-        bull_votes += 1
-        score += 15
-        factors.append(f"Bullish Market Breadth (Adv/Dec: {breadth_ratio:.2f}) (+15 pts)")
-    elif breadth_ratio <= 0.8:
-        bear_votes += 1
-        score += 15
-        factors.append(f"Bearish Market Breadth (Adv/Dec: {breadth_ratio:.2f}) (+15 pts)")
+    # Market Breadth
+    if b_val >= 1.25:
+        long_pts += 15
+        long_pillars["breadth"] = {"pts": 15, "max": 15, "name": "Breadth", "desc": f"Bullish breadth A/D {b_val:.2f}"}
+        long_factors.append(f"Bullish breadth {b_val:.2f} (+15 pts)")
     else:
-        score += 10
-        factors.append(f"Neutral Market Breadth ({breadth_ratio:.2f}) (+10 pts)")
+        long_pillars["breadth"] = {"pts": 0, "max": 15, "name": "Breadth", "desc": f"Unaligned breadth A/D {b_val:.2f} (0 pts)"}
 
-    # Pillar 6: India VIX Bound (15 pts)
-    if 11.5 <= vix <= 22.0:
-        score += 15
-        factors.append(f"Healthy India VIX Regime ({vix:.1f}) (+15 pts)")
+    # India VIX
+    if 11.5 <= v_val <= 18.0:
+        long_pts += 15
+        long_pillars["vix"] = {"pts": 15, "max": 15, "name": "VIX", "desc": f"Optimal stable VIX {v_val:.1f}"}
+        long_factors.append(f"Stable VIX {v_val:.1f} (+15 pts)")
+    elif 18.0 < v_val <= 22.0:
+        long_pts += 8
+        long_pillars["vix"] = {"pts": 8, "max": 15, "name": "VIX", "desc": f"Moderate VIX {v_val:.1f}"}
+        long_factors.append(f"Moderate VIX {v_val:.1f} (+8 pts)")
     else:
-        score += 5
-        factors.append(f"Extreme VIX Warning ({vix:.1f}) (+5 pts)")
+        long_pillars["vix"] = {"pts": 0, "max": 15, "name": "VIX", "desc": f"VIX {v_val:.1f} out of optimal regime (0 pts)"}
 
-    # Final Decision Gate
-    side = "BUY" if bull_votes > bear_votes else ("SELL" if bear_votes > bull_votes else "NEUTRAL")
-    is_executable = score >= 80 and side != "NEUTRAL"
+    # 2. Short Candidate (SELL)
+    short_pts = 0
+    short_pillars = {}
+    short_factors = []
 
+    # CPR
+    if cpr and curr_c < cpr["bc"]:
+        pts = 15 if cpr["is_narrow"] else 7
+        short_pts += pts
+        short_pillars["cpr"] = {"pts": pts, "max": 15, "name": "CPR", "desc": f"Below CPR BC Rs {cpr['bc']:.2f} ({'Narrow' if cpr['is_narrow'] else 'Normal'})"}
+        short_factors.append(f"Price below CPR BC (+{pts} pts)")
+    else:
+        short_pillars["cpr"] = {"pts": 0, "max": 15, "name": "CPR", "desc": "Inside or above CPR BC (0 pts)"}
+
+    # VWAP (Strictly NO free points if price >= VWAP)
+    if curr_c < curr_vwap:
+        short_pts += 20
+        dist = ((curr_vwap - curr_c) / curr_vwap) * 100.0
+        short_pillars["vwap"] = {"pts": 20, "max": 20, "name": "VWAP", "desc": f"Below VWAP Rs {curr_vwap:.2f} (-{dist:.2f}%)"}
+        short_factors.append("Price below Institutional VWAP (+20 pts)")
+    else:
+        short_pillars["vwap"] = {"pts": 0, "max": 20, "name": "VWAP", "desc": f"Price above VWAP Rs {curr_vwap:.2f} (0 pts)"}
+
+    # Trend (Supertrend & EMA)
+    if st["trend"] == -1 and ema9 <= ema20:
+        short_pts += 20
+        short_pillars["trend"] = {"pts": 20, "max": 20, "name": "Trend", "desc": "Supertrend RED & 9 EMA <= 20 EMA"}
+        short_factors.append("Supertrend RED & 9 EMA < 20 EMA (+20 pts)")
+    elif st["trend"] == -1 or ema9 <= ema20:
+        short_pts += 8
+        short_pillars["trend"] = {"pts": 8, "max": 20, "name": "Trend", "desc": "Partial bearish trend alignment"}
+        short_factors.append("Partial bearish trend (+8 pts)")
+    else:
+        short_pillars["trend"] = {"pts": 0, "max": 20, "name": "Trend", "desc": "Bullish trend alignment (0 pts)"}
+
+    # Volume Fuel
+    if v_ratio >= 1.3:
+        short_pts += 15
+        short_pillars["volume"] = {"pts": 15, "max": 15, "name": "Volume", "desc": f"Strong volume surge {v_ratio:.1f}x"}
+        short_factors.append(f"Volume surge {v_ratio:.1f}x (+15 pts)")
+    elif v_ratio >= 1.15:
+        short_pts += 8
+        short_pillars["volume"] = {"pts": 8, "max": 15, "name": "Volume", "desc": f"Above average volume {v_ratio:.1f}x"}
+        short_factors.append(f"Above-average volume {v_ratio:.1f}x (+8 pts)")
+    else:
+        short_pillars["volume"] = {"pts": 0, "max": 15, "name": "Volume", "desc": f"Subdued volume {v_ratio:.1f}x (0 pts)"}
+
+    # Market Breadth
+    if b_val <= 0.80:
+        short_pts += 15
+        short_pillars["breadth"] = {"pts": 15, "max": 15, "name": "Breadth", "desc": f"Bearish breadth A/D {b_val:.2f}"}
+        short_factors.append(f"Bearish breadth {b_val:.2f} (+15 pts)")
+    else:
+        short_pillars["breadth"] = {"pts": 0, "max": 15, "name": "Breadth", "desc": f"Unaligned breadth A/D {b_val:.2f} (0 pts)"}
+
+    # India VIX
+    if 16.0 <= v_val <= 26.0:
+        short_pts += 15
+        short_pillars["vix"] = {"pts": 15, "max": 15, "name": "VIX", "desc": f"Elevated VIX {v_val:.1f} favoring breakdown"}
+        short_factors.append(f"Elevated VIX {v_val:.1f} (+15 pts)")
+    elif 13.0 <= v_val < 16.0:
+        short_pts += 8
+        short_pillars["vix"] = {"pts": 8, "max": 15, "name": "VIX", "desc": f"Moderate VIX {v_val:.1f}"}
+        short_factors.append(f"Moderate VIX {v_val:.1f} (+8 pts)")
+    else:
+        short_pillars["vix"] = {"pts": 0, "max": 15, "name": "VIX", "desc": f"VIX {v_val:.1f} out of breakdown regime (0 pts)"}
+
+    # -------------------------------------------------------------
+    # Direction Selection & Stop Geometry Validation
+    # -------------------------------------------------------------
+    if long_pts > short_pts and long_pts >= 50:
+        side = "BUY"
+        score = long_pts
+        pillars = long_pillars
+        factors = long_factors
+    elif short_pts > long_pts and short_pts >= 50:
+        side = "SELL"
+        score = short_pts
+        pillars = short_pillars
+        factors = short_factors
+    else:
+        side = "NEUTRAL"
+        if long_pts >= short_pts:
+            score = long_pts
+            pillars = long_pillars
+            factors = long_factors
+        else:
+            score = short_pts
+            pillars = short_pillars
+            factors = short_factors
+
+    is_executable = (score >= 80 and side in ("BUY", "SELL"))
+
+    entry = round(curr_c, 2)
     if side == "BUY":
-        stop = round(max(curr_vwap * 0.994, curr_c * 0.990), 2)
-        risk = max(curr_c - stop, curr_c * 0.005)
-        target = round(curr_c + risk * 2.2, 2)
+        # Enforce stop strictly below entry
+        raw_stop = min(curr_c * 0.992, (curr_vwap * 0.996) if curr_vwap < curr_c else (curr_c * 0.992))
+        stop = round(raw_stop, 2)
+        if stop >= entry:
+            return {
+                "strategy_id": "aic_confluence",
+                "strategy_name": "Vyapar Institutional Confluence (AIC-20)",
+                "signal": "NEUTRAL",
+                "raw_signal": "BUY",
+                "score": score,
+                "threshold": 80,
+                "is_executable": False,
+                "confidence": "LOW",
+                "entry": entry,
+                "stop": stop,
+                "target": 0.0,
+                "risk_reward": 0.0,
+                "pillars": pillars,
+                "factors": factors + [f"Stop geometry failure: stop {stop} >= entry {entry}"],
+                "reason": f"BUY stop {stop:.2f} >= entry {entry:.2f}; setup neutralized"
+            }
+        risk = entry - stop
+        target = round(entry + (risk * 2.2), 2)
     elif side == "SELL":
-        stop = round(min(curr_vwap * 1.006, curr_c * 1.010), 2)
-        risk = max(stop - curr_c, curr_c * 0.005)
-        target = round(curr_c - risk * 2.2, 2)
+        # Enforce stop strictly above entry
+        raw_stop = max(curr_c * 1.008, (curr_vwap * 1.004) if curr_vwap > curr_c else (curr_c * 1.008))
+        stop = round(raw_stop, 2)
+        if stop <= entry:
+            return {
+                "strategy_id": "aic_confluence",
+                "strategy_name": "Vyapar Institutional Confluence (AIC-20)",
+                "signal": "NEUTRAL",
+                "raw_signal": "SELL",
+                "score": score,
+                "threshold": 80,
+                "is_executable": False,
+                "confidence": "LOW",
+                "entry": entry,
+                "stop": stop,
+                "target": 0.0,
+                "risk_reward": 0.0,
+                "pillars": pillars,
+                "factors": factors + [f"Stop geometry failure: stop {stop} <= entry {entry}"],
+                "reason": f"SELL stop {stop:.2f} <= entry {entry:.2f}; setup neutralized"
+            }
+        risk = stop - entry
+        target = round(entry - (risk * 2.2), 2)
     else:
         stop = round(curr_c * 0.992, 2)
         target = round(curr_c * 1.015, 2)
@@ -1293,12 +1431,13 @@ def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
         "threshold": 80,
         "is_executable": is_executable,
         "confidence": "HIGH" if is_executable else ("MEDIUM" if score >= 65 else "LOW"),
-        "entry": round(curr_c, 2),
+        "entry": entry,
         "stop": stop,
         "target": target,
-        "risk_reward": 2.2,
+        "risk_reward": 2.2 if is_executable else 0.0,
+        "pillars": pillars,
         "factors": factors,
-        "reason": f"AIC-20 Score {score}/100 [{status_tag}]: " + "; ".join(factors[:3])
+        "reason": f"AIC-20 Score {score}/100 [{status_tag}]: " + ("; ".join(factors[:3]) if factors else "Awaiting setup")
     }
 
 
@@ -1306,7 +1445,7 @@ def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
 # Master Evaluation Router
 # =====================================================================
 
-def evaluate_all(symbol, candles, prev_bar=None, vix=13.5, breadth=1.3):
+def evaluate_all(symbol, candles, prev_bar=None, vix=None, breadth=None):
     """Evaluates all 20 strategies against the given symbol and candle data."""
     results = {}
 
@@ -1323,7 +1462,7 @@ def evaluate_all(symbol, candles, prev_bar=None, vix=13.5, breadth=1.3):
     results["cpr_camarilla"] = eval_cpr_camarilla_strat(candles, prev_bar)
     results["micro_scalper"] = eval_micro_scalp(candles)
     results["options_delta_burst"] = eval_options_delta_burst(candles, symbol)
-    results["options_strangle"] = eval_options_strangle(candles, vix)
+    results["options_strangle"] = eval_options_strangle(candles, vix or 15.0)
     results["options_920_straddle"] = eval_options_920_straddle(candles)
     results["options_max_pain"] = eval_options_max_pain(symbol)
     results["news_results"] = eval_news_results(candles)
@@ -1334,6 +1473,8 @@ def evaluate_all(symbol, candles, prev_bar=None, vix=13.5, breadth=1.3):
     # Attach strategy metadata
     enhanced = []
     for s_id, res in results.items():
+        if isinstance(res, dict) and "is_executable" not in res:
+            res["is_executable"] = (res.get("signal") in ("BUY", "SELL"))
         meta = STRATEGY_REGISTRY.get(s_id, {})
         merged = {**meta, "evaluation": res}
         enhanced.append(merged)
@@ -1345,7 +1486,7 @@ def evaluate_all(symbol, candles, prev_bar=None, vix=13.5, breadth=1.3):
 # Real-Time NSE Data Fetcher
 # =====================================================================
 
-def fetch_intraday_candles(symbol, interval="5m", range_str="1d"):
+def fetch_intraday_candles(symbol, interval="5m", range_str="5d"):
     """Fetches real-time intraday candles via Yahoo Finance API."""
     sym = symbol.strip().upper()
     if not (sym.endswith(".NS") or sym.endswith(".BO")):
@@ -1377,35 +1518,57 @@ def fetch_intraday_candles(symbol, interval="5m", range_str="1d"):
                         "volume": float(v)
                     })
             return candles
-    except Exception as e:
-        # Generate synthetic candles fallback if market closed or offline
+    except Exception:
         return []
 
 
 def fetch_prev_bar(symbol):
-    """Fetches completed previous day daily bar."""
+    """Fetches completed previous day daily bar by IST date (no blind index -2)."""
     sym = symbol.strip().upper()
     if not (sym.endswith(".NS") or sym.endswith(".BO")):
         sym += ".NS"
 
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{sym}?range=5d&interval=1d"
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{sym}?range=1mo&interval=1d"
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             chart = data["chart"]["result"][0]
             quotes = chart["indicators"]["quote"][0]
-            highs = [h for h in quotes["high"] if h is not None]
-            lows = [l for l in quotes["low"] if l is not None]
-            closes = [c for c in quotes["close"] if c is not None]
-            if len(closes) >= 2:
-                idx = -2
-                return {"high": float(highs[idx]), "low": float(lows[idx]), "close": float(closes[idx])}
-            elif closes:
-                return {"high": float(highs[-1]), "low": float(lows[-1]), "close": float(closes[-1])}
+            timestamps = chart.get("timestamp", [])
+            highs = quotes.get("high", [])
+            lows = quotes.get("low", [])
+            closes = quotes.get("close", [])
+            opens = quotes.get("open", [])
+
+            now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
+            today_date = now_ist.date()
+
+            completed_bars = []
+            for i in range(len(timestamps)):
+                ts = timestamps[i]
+                h = highs[i] if i < len(highs) else None
+                l = lows[i] if i < len(lows) else None
+                c = closes[i] if i < len(closes) else None
+                o = opens[i] if i < len(opens) else None
+                if ts is not None and h is not None and l is not None and c is not None:
+                    bar_dt = to_ist(datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc))
+                    bar_date = bar_dt.date()
+                    if bar_date < today_date:
+                        completed_bars.append({
+                            "date": bar_date.strftime("%Y-%m-%d"),
+                            "open": float(o if o is not None else c),
+                            "high": float(h),
+                            "low": float(l),
+                            "close": float(c)
+                        })
+
+            if completed_bars:
+                return completed_bars[-1]
     except Exception:
         pass
     return None
+
 
 
 # =====================================================================
@@ -1431,7 +1594,8 @@ def main():
             print("-" * 90)
             for s in sorted(STRATEGY_REGISTRY.values(), key=lambda x: x["num"]):
                 highlight = "★ " if s["num"] == 20 else "  "
-                print(f"{s['num']:<3} | {highlight}{s['name']:<36} | {s['win_rate']:<11} | {s['risk_reward']:<7} | {s['style']}")
+                wr = s.get("win_rate", "Journal")
+                print(f"{s['num']:<3} | {highlight}{s['name']:<36} | {wr:<11} | {s['risk_reward']:<7} | {s['style']}")
             print("==========================================================================================")
             print("Total: 20 Strategies Available. Run with --symbol <STOCK> to evaluate live signals.")
         return
@@ -1467,8 +1631,9 @@ def main():
             ev = e["evaluation"]
             sig = ev.get("signal", "NEUTRAL")
             color_tag = "🚀 BUY" if sig == "BUY" else ("🔻 SELL" if sig == "SELL" else "⏸ NEUTRAL")
+            wr = e.get("win_rate", "Measured in Journal")
             print(f"[{e['num']:02d}] {e['name']}")
-            print(f"     Signal: {color_tag} | Win Rate: {e['win_rate']} | R:R: {e['risk_reward']}")
+            print(f"     Signal: {color_tag} | Win Rate: {wr} | R:R: {e['risk_reward']}")
             print(f"     Reason: {ev.get('reason', 'N/A')}")
             if ev.get("entry") is not None and ev.get("stop") is not None and ev.get("target") is not None:
                 print(f"     Levels: Entry ₹{ev['entry']} | Stop ₹{ev['stop']} | Target ₹{ev['target']}")

@@ -48,6 +48,7 @@ DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
 DEFAULT_CONFIG_FILE = resolve_path("trader/config.json")
 DEFAULT_EVENTS_FILE = resolve_path("trader/events.json")
 DEFAULT_RISK_STATE = resolve_path("trader/state/risk.json")
+DEFAULT_DECISIONS_FILE = resolve_path("trader/state/decisions.json")
 DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
 DEFAULT_BREADTH_STATE = resolve_path("trader/state/breadth.json")
 DEFAULT_SURVEILLANCE_FILE = resolve_path("trader/data/surveillance.json")
@@ -487,30 +488,56 @@ def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays
     return True, "All risk rules passed"
 
 
+def log_risk_decision(order: dict, passed: bool, reason: str, now_ist: datetime.datetime):
+    """Records audit trail of all risk decisions to trader/state/decisions.json under STATE_LOCK."""
+    try:
+        dec_file = DEFAULT_DECISIONS_FILE
+        data = load_json(dec_file) if os.path.exists(dec_file) else {"decisions": []}
+        decisions = data.get("decisions", [])
+        entry = {
+            "timestamp": now_ist.strftime("%Y-%m-%d %H:%M:%S"),
+            "symbol": order.get("symbol", "UNKNOWN"),
+            "side": order.get("side", "BUY"),
+            "qty": order.get("qty", 0),
+            "entry_price": order.get("entry_price", 0.0),
+            "verdict": "PASS" if passed else "BLOCK",
+            "reason": reason
+        }
+        decisions.insert(0, entry)
+        decisions = decisions[:100]  # keep latest 100
+        save_json(dec_file, {"decisions": decisions})
+    except Exception:
+        pass
+
+
 def pre_trade_gate(order: dict, config: dict = None, now_ist: datetime.datetime = None, vix=None) -> tuple:
     """Universal institutional pre-trade risk gate called before any order entry.
     Fails closed on any configuration, data, or events file error.
     """
+    now = now_ist or to_ist(datetime.datetime.now(datetime.timezone.utc))
+
     # 1. Config loading (Fail Closed)
     if config:
         cfg = config
     else:
         cfg_ok, loaded_cfg, cfg_err = load_config_fail_closed(DEFAULT_CONFIG_FILE)
         if not cfg_ok:
+            log_risk_decision(order, False, cfg_err, now)
             return False, cfg_err
         cfg = loaded_cfg
 
     # 2. Events loading (Fail Closed)
     ev_ok, ev_data, ev_err = load_events_fail_closed(DEFAULT_EVENTS_FILE)
     if not ev_ok:
+        log_risk_decision(order, False, ev_err, now)
         return False, ev_err
-
-    now = now_ist or to_ist(datetime.datetime.now(datetime.timezone.utc))
 
     # 3. Disallow options strategies in equity executor
     strat = str(order.get("strategy_id", "")).lower()
     if any(opt_kw in strat for opt_kw in ["straddle", "strangle", "iron_condor", "expiry_buying", "option"]):
-        return False, "Options strategies (13-16) are marked Analysis-Only. Execution blocked."
+        msg = "Options strategies (13-16) are marked Analysis-Only. Execution blocked."
+        log_risk_decision(order, False, msg, now)
+        return False, msg
 
     # 4. Resolve VIX
     vix_val = vix if vix is not None else fetch_india_vix()
@@ -518,7 +545,9 @@ def pre_trade_gate(order: dict, config: dict = None, now_ist: datetime.datetime 
     # 5. Shared broker trade state
     todays_broker = get_todays_trade_state(now, DEFAULT_BROKER_STATE)
 
-    return validate_order(order, cfg, now, todays_broker, current_vix=vix_val, events_data=ev_data)
+    passed, reason = validate_order(order, cfg, now, todays_broker, current_vix=vix_val, events_data=ev_data)
+    log_risk_decision(order, passed, reason, now)
+    return passed, reason
 
 
 def is_verdict_stale(verdict_entry: dict, now_ist: datetime.datetime, max_age_seconds: int = 300) -> bool:

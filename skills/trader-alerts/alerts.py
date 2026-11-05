@@ -80,13 +80,45 @@ def session(d):
 def market_status(now_utc):
     local = to_ist(now_utc)
     d = local.date()
+    t = local.time()
     ok, reason = trading_day(d)
+
+    pre_open_time = datetime.time(9, 0)
+    open_time = datetime.time(9, 15)
+    close_time = datetime.time(15, 30)
+
+    if ok and pre_open_time <= t < open_time:
+        market_phase = "PRE-OPEN"
+        is_open = False
+        if not reason:
+            reason = "pre-open session"
+    elif ok and open_time <= t < close_time:
+        market_phase = "OPEN"
+        is_open = True
+        if not reason:
+            reason = "regular trading session"
+    else:
+        market_phase = "CLOSED"
+        is_open = False
+        if not reason:
+            if not ok:
+                reason = "market holiday / weekend"
+            elif t < pre_open_time:
+                reason = "before the pre-open"
+            else:
+                reason = "after the close"
+
     st = {
         "now_ist": local.strftime("%Y-%m-%d %H:%M:%S"),
+        "ist_time": local.strftime("%H:%M:%S"),
         "date": d.isoformat(),
+        "ist_date": d.isoformat(),
         "weekday": local.strftime("%A"),
         "calendar_known": d.year in CALENDAR_YEARS,
-        "open": False,
+        "open": is_open,
+        "market_open": is_open,
+        "market_phase": market_phase,
+        "status": market_phase,
         "reason": reason,
         "flat_by": FLAT_BY.strftime("%H:%M")
     }
@@ -94,13 +126,6 @@ def market_status(now_utc):
     if s:
         o, c = s
         st["opens"], st["closes"] = o.strftime("%H:%M"), c.strftime("%H:%M")
-        if o <= local.time() < c:
-            st["open"] = True
-            st["reason"] = "regular trading session"
-        elif local.time() < o:
-            st["reason"] = "before the open"
-        else:
-            st["reason"] = "after the close"
 
     nd = d if (s and local.time() < s[0]) else d + datetime.timedelta(days=1)
     for _ in range(15):

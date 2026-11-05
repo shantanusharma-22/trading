@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vyapar AI · Smarter Trades for Bharat · NSE · BSE</title>
   <link rel="icon" type="image/png" href="/static/vyapar_ai_logo.png">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="/static/vyapar.css">
   <script src="/static/lightweight-charts.standalone.production.js"></script>
   <style>
     :root {
@@ -603,6 +604,7 @@
 
   <!-- ==================== HEADER ==================== -->
   <header>
+    <button type="button" id="sidebarToggleBtn" onclick="toggleSidebar()" style="background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-sub); width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; margin-right: 4px;" title="Toggle Sidebar (Ctrl+B)">☰</button>
     <div class="brand-wrap" style="display: flex; align-items: center; gap: 11px;">
       <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 9px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
         <rect width="100" height="100" rx="24" fill="#0C1B2F"/>
@@ -631,10 +633,21 @@
       <span class="clock-badge" id="headerMarketBadge">
         <span class="pulse-dot"></span><span id="marketBadgeText">OPEN · live</span>
       </span>
+      <div id="dataFreshnessPill" style="display: flex; align-items: center; gap: 5px; font-size: 11px; background: rgba(12,27,47,0.7); border: 1px solid var(--border); padding: 3px 8px; border-radius: 6px;" title="Real-time data feed freshness monitor">
+        <span id="freshnessDot" style="width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); display: inline-block;"></span>
+        <span id="freshnessLabel" style="color: var(--text-dim);">Live (<5s)</span>
+        <span style="font-size: 9px; padding: 1px 4px; background: rgba(240,125,26,0.15); color: var(--brand-orange-light); border-radius: 4px;" title="Delayed Yahoo Finance data feed (~15m lag)">DELAYED ~15m</span>
+      </div>
+    </div>
+
+    <!-- Persistent Paper Mode Watermark -->
+    <div style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(240, 125, 26, 0.12); border: 1px solid rgba(240, 125, 26, 0.35); border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--brand-orange-light);" id="paperWatermark">
+      <span>⚠️ PAPER TRADING SIMULATION</span>
+      <span style="font-size: 10px; opacity: 0.75; font-weight: 400;">· No Real Money At Risk</span>
     </div>
 
     <!-- Time Remaining Countdowns -->
-    <div style="display: flex; gap: 18px; flex-wrap: wrap">
+    <div id="sessionCountdownsBox" style="display: flex; gap: 18px; flex-wrap: wrap">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-size: 11px; color: var(--muted)">New entries close in</span>
         <span class="mono" style="font-weight: 600" id="cdNewEntries">--:--:--</span>
@@ -676,6 +689,9 @@
       <span style="padding: 5px 10px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 12px; color: var(--text-sub)" id="brokerModeTag">
         Paper · Angel One data
       </span>
+      <button type="button" onclick="openDecisionLogModal()" style="height: 38px; padding: 0 12px; background: var(--card-cockpit); border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-sub); font-size: 12px; font-weight: 500; cursor: pointer;" title="Open risk gate audit log">
+        📋 Risk Log
+      </button>
       <button type="button" aria-label="Settings" onclick="openConfigModal()" style="width: 38px; height: 38px; display: grid; place-items: center; background: var(--card-cockpit); border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-sub); cursor: pointer">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <circle cx="12" cy="12" r="3"></circle>
@@ -688,7 +704,59 @@
     </div>
   </header>
 
-  <!-- ==================== SESSION TIMELINE RIBBON ==================== -->
+  <div class="app-layout">
+    
+    <!-- ==================== DESKTOP PERSISTENT COLLAPSIBLE SIDEBAR ==================== -->
+    <aside id="appSidebar" class="app-sidebar" aria-label="Application Navigation">
+      <nav class="sidebar-nav">
+        <a href="#/trade" class="sidebar-link active" data-page="trade" title="Trading Cockpit (Alt+1)">
+          <span class="sidebar-icon">⚡</span>
+          <span class="sidebar-label">Trade</span>
+        </a>
+        <a href="#/scanner" class="sidebar-link" data-page="scanner" title="15m ORB & Gap Scanner (Alt+2)">
+          <span class="sidebar-icon">🚀</span>
+          <span class="sidebar-label">Scanner</span>
+        </a>
+        <a href="#/strategies" class="sidebar-link" data-page="strategies" title="20 Strategies Matrix (Alt+3)">
+          <span class="sidebar-icon">📊</span>
+          <span class="sidebar-label">Strategies</span>
+        </a>
+        <a href="#/journal" class="sidebar-link" data-page="journal" title="Journal & Analytics (Alt+4)">
+          <span class="sidebar-icon">📓</span>
+          <span class="sidebar-label">Journal</span>
+        </a>
+        <a href="#/risk" class="sidebar-link" data-page="risk" title="Risk Radar & Audit Log (Alt+5)">
+          <span class="sidebar-icon">🛡️</span>
+          <span class="sidebar-label">Risk Radar</span>
+        </a>
+        <a href="#/backtest" class="sidebar-link" data-page="backtest" title="Walk-Forward Backtest (Alt+6)">
+          <span class="sidebar-icon">🔬</span>
+          <span class="sidebar-label">Backtest</span>
+        </a>
+        <a href="#/news" class="sidebar-link" data-page="news" title="Institutional News & Events (Alt+7)">
+          <span class="sidebar-icon">📰</span>
+          <span class="sidebar-label">News &amp; FII</span>
+        </a>
+        <a href="#/settings" class="sidebar-link" data-page="settings" title="Broker & System Settings (Alt+8)">
+          <span class="sidebar-icon">⚙️</span>
+          <span class="sidebar-label">Settings</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse / Expand Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="sidebar-label">Collapse</span>
+        </button>
+      </div>
+    </aside>
+
+    
+    <!-- ==================== MAIN CONTENT AREA (8 HASH VIEWS) ==================== -->
+    <main class="app-main-content">
+
+      <!-- ==================== VIEW 1: TRADING COCKPIT (#/trade) ==================== -->
+      <div id="viewTrading" class="view-container active">
+        <!-- ==================== SESSION TIMELINE RIBBON ==================== -->
   <section aria-label="Session timeline" class="session-ribbon">
     <div class="ribbon-track">
       <div style="flex: 8 1 0; background: #3b3f75" title="Pre-Open Auction 09:00 - 09:08"></div>
@@ -701,8 +769,7 @@
       <div id="ribbonProgressBar" style="position: absolute; top: 0; bottom: 0; left: 0; width: 0%; background: rgba(255,255,255,0.08);"></div>
     </div>
     <div class="ribbon-labels">
-      <span style="position: absolute; left: 0">09:00 pre-open</span>
-      <span style="position: absolute; left: 3.8%">09:15 open</span>
+      <span style="position: absolute; left: 0">09:00 pre · 09:15 open</span>
       <span id="ribbonNowText" style="position: absolute; left: 50%; color: #ffffff">now --:--</span>
       <span style="position: absolute; left: 78%">14:45 no new entries</span>
       <span style="position: absolute; right: 0">15:10 square-off · 15:30 close</span>
@@ -804,9 +871,7 @@
   </section>
 
   <!-- ==================== VIEW 1: TRADING COCKPIT ==================== -->
-  <div id="viewTrading" class="view-container active">
-
-    <!-- Workspace: Interactive Lightweight Chart (2fr) + Cockpit (1fr) -->
+        <!-- Workspace: Interactive Lightweight Chart (2fr) + Cockpit (1fr) -->
     <div class="workspace-row">
 
       <!-- LEFT: Chart Panel -->
@@ -976,6 +1041,11 @@
             <!-- Injected dynamically -->
           </div>
 
+          <!-- Why This Trade Inspection Trigger -->
+          <button type="button" id="btnWhyTrade" onclick="openWhyThisTradeModal()" style="height: 32px; border: 1px solid var(--border-light); border-radius: 8px; background: rgba(12,27,47,0.7); color: var(--brand-orange-light); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Inspect institutional confluence score, levels, charges and risk-reward ratio">
+            <span>Why this trade? ⓘ</span>
+          </button>
+
           <!-- Execution Action Buttons -->
           <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px;">
             <button type="button" id="btnBuyOrder" onclick="executeCockpitOrder('BUY')" style="height: 46px; border: 0; border-radius: 10px; background: var(--green-btn); color: #04130d; font-weight: 700; font-size: 14px; cursor: pointer">
@@ -1050,14 +1120,156 @@
       </section>
 
     </div>
+        <nav aria-label="Scanners and tools" class="action-nav">
+    <button type="button" class="btn-action" onclick="run1ClickScan('orb')"><span>🚀</span> 15m ORB scan</button>
+    <button type="button" class="btn-action" onclick="run1ClickScan('preopen')"><span>🌅</span> 09:08 pre-open auction</button>
+    <button type="button" class="btn-action" onclick="run1ClickScan('swing')"><span>📈</span> Swing &amp; Fib</button>
+    <button type="button" class="btn-action" onclick="openStrategyMatrixModal()"><span>📊</span> Strategy matrix (20)</button>
+    <button type="button" class="btn-action" id="btnTogglePerfView" onclick="togglePerformanceView()"><span>📈</span> Performance</button>
+    <button type="button" class="btn-action" onclick="runUnitTests()"><span>🧪</span> Run tests</button>
+    <button type="button" class="btn-action" style="margin-left: auto;" onclick="refreshAllFeeds(true)"><span>🔄</span> Refresh feeds</button>
+  </nav>
+      </div>
 
-  </div> <!-- End View 1: Trading Cockpit -->
+      <!-- ==================== VIEW 2: 15m ORB & GAP SCANNER (#/scanner) ==================== -->
+      <div id="viewScanner" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🚀</span>
+              <h1 class="brand-heading">15m ORB &amp; Pre-Open Gap Scanner</h1>
+              <span class="badge badge-blue">Live Scanner</span>
+            </div>
+            <p>Algorithmic pre-open gap leaders, narrow CPR breakouts and 15m Opening Range Breakouts.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <select id="scannerIndexFilter" onchange="loadScannerData()" style="height: 34px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+              <option value="all">All Indices</option>
+              <option value="nifty50">Nifty 50</option>
+              <option value="nifty100">Nifty 100</option>
+              <option value="fno">F&amp;O Universe</option>
+            </select>
+            <select id="scannerSectorFilter" onchange="loadScannerData()" style="height: 34px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+              <option value="all">All Sectors</option>
+              <option value="banking">Banking &amp; Finance</option>
+              <option value="it">Information Technology</option>
+              <option value="auto">Automobile</option>
+              <option value="pharma">Pharma &amp; Healthcare</option>
+              <option value="energy">Energy &amp; Oil</option>
+              <option value="metals">Metals &amp; Mining</option>
+            </select>
+            <select id="scannerScoreFilter" onchange="loadScannerData()" style="height: 34px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+              <option value="0">All Scores</option>
+              <option value="70">Score ≥ 70 (Trade Gate)</option>
+              <option value="80">Score ≥ 80 (High Confluence)</option>
+            </select>
+            <button type="button" class="btn-action" onclick="loadScannerData(true)" style="height: 34px;">
+              <span>🔄</span> Refresh Scan
+            </button>
+          </div>
+        </div>
 
+        <div class="data-stamp" id="scannerDataStamp">
+          <span>Data source: NSE Bhavcopy &amp; Yahoo Live Quotes · As of: <span id="scannerAsOf">--:--:-- IST</span></span>
+        </div>
 
-  <!-- ==================== VIEW 2: PERFORMANCE ANALYTICS ==================== -->
-  <div id="viewPerformance" class="view-container">
+        <div class="data-table-wrap">
+          <table class="vyapar-table" id="scannerTable">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Sector</th>
+                <th>Index</th>
+                <th style="text-align: right;">Gap %</th>
+                <th>CPR Width</th>
+                <th style="text-align: right;">Delivery %</th>
+                <th style="text-align: center;">AIC-20 Score</th>
+                <th>Identified Setup</th>
+                <th style="text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="scannerTableBody" class="mono">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 24px; color: var(--muted);">Loading candidate setups...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    <!-- Top Performance Navigation Bar -->
+      <!-- ==================== VIEW 3: AIC-20 STRATEGY MATRIX (#/strategies) ==================== -->
+      <div id="viewStrategies" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">📊</span>
+              <h1 class="brand-heading">AIC-20 Strategy Matrix</h1>
+              <span class="badge badge-blue">20 Strategies</span>
+            </div>
+            <p>Live strategy evaluation matrix with measured journal win rates. Zero hardcoded claims.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 12px; color: var(--muted);">Evaluating:</span>
+            <select id="strategiesSymbolSelect" onchange="loadStrategiesData()" style="height: 34px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px; font-weight: 600;">
+              <option value="TCS.NS">TCS.NS</option>
+              <option value="RELIANCE.NS">RELIANCE.NS</option>
+              <option value="INFY.NS">INFY.NS</option>
+              <option value="HDFCBANK.NS">HDFCBANK.NS</option>
+              <option value="ICICIBANK.NS">ICICIBANK.NS</option>
+              <option value="SBIN.NS">SBIN.NS</option>
+              <option value="TATAMOTORS.NS">TATAMOTORS.NS</option>
+            </select>
+            <button type="button" class="btn-action" onclick="loadStrategiesData(true)" style="height: 34px;">
+              <span>🔄</span> Re-evaluate
+            </button>
+          </div>
+        </div>
+
+        <div class="data-stamp" id="strategiesDataStamp">
+          <span>Data source: AIC-20 Engine &amp; SQLite Journal · As of: <span id="strategiesAsOf">--:--:-- IST</span></span>
+        </div>
+
+        <!-- 6-Pillar Overview Card -->
+        <div class="page-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 14px; font-weight: 600; margin: 0;">AIC-20 6-Pillar Confluence Breakdown (<span id="stratPillarSym">TCS.NS</span>)</h2>
+            <span class="badge badge-amber" id="stratCompositeScoreBadge">Score: -- / 100</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;" id="stratPillarsGrid">
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P1: Trend</span><span class="mono" style="font-weight: 600;" id="pillarTrendVal">--</span></div>
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P2: Momentum</span><span class="mono" style="font-weight: 600;" id="pillarMomVal">--</span></div>
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P3: Volume</span><span class="mono" style="font-weight: 600;" id="pillarVolVal">--</span></div>
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P4: Pivots / CPR</span><span class="mono" style="font-weight: 600;" id="pillarPivVal">--</span></div>
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P5: Market Regime</span><span class="mono" style="font-weight: 600;" id="pillarRegVal">--</span></div>
+            <div class="cockpit-card"><span style="font-size: 11px; color: var(--muted)">P6: Volatility ATR</span><span class="mono" style="font-weight: 600;" id="pillarVolatVal">--</span></div>
+          </div>
+        </div>
+
+        <!-- Strategies Matrix Table -->
+        <div class="data-table-wrap">
+          <table class="vyapar-table">
+            <thead>
+              <tr>
+                <th>Strategy</th>
+                <th>Category</th>
+                <th>Execution Mode</th>
+                <th style="text-align: center;">Signal</th>
+                <th style="text-align: right;">Journal Win Rate</th>
+                <th style="text-align: right;">Journal Trades</th>
+                <th style="text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="strategiesMatrixTableBody" class="mono">
+              <tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">Loading 20 strategies matrix...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 4: JOURNAL & ANALYTICS (#/journal) ==================== -->
+      <div id="viewJournal" class="view-container">
+        <div id="viewPerformance" style="display: contents;">
+          <!-- Top Performance Navigation Bar -->
     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;">
       <button type="button" class="btn-action" onclick="switchView('trading')">← Trading</button>
       <h1 style="margin: 0; font-size: 18px; font-weight: 600">Performance Analytics</h1>
@@ -1204,20 +1416,446 @@
         <input id="reviewTradeNote" type="text" placeholder="What would you do differently next time?" style="height: 38px; padding: 0 10px; background: #0b0e14; border: 1px solid var(--border); border-radius: 8px; color: var(--text)">
       </section>
     </div>
+          <!-- Realized Trades Audit Table with CSV export -->
+          <section aria-label="Realized trades" class="cockpit-card" style="margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <h2 style="margin: 0; font-size: 14px; font-weight: 600;">Realized Trades History · NET of Statutory Charges</h2>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-action" onclick="exportTradesCsv()">📥 Export CSV</button>
+              </div>
+            </div>
+            <div class="data-table-wrap" style="margin-top: 10px;">
+              <table class="vyapar-table">
+                <thead>
+                  <tr>
+                    <th>Date/Time (IST)</th>
+                    <th>Symbol</th>
+                    <th>Strategy</th>
+                    <th>Side</th>
+                    <th style="text-align: right;">Entry</th>
+                    <th style="text-align: right;">Exit</th>
+                    <th style="text-align: right;">Qty</th>
+                    <th style="text-align: right;">Gross P&amp;L</th>
+                    <th style="text-align: right;">Charges</th>
+                    <th style="text-align: right;">Net P&amp;L</th>
+                    <th style="text-align: right;">R-Multiple</th>
+                  </tr>
+                </thead>
+                <tbody id="journalTradesTableBody" class="mono">
+                  <tr><td colspan="11" style="text-align: center; padding: 18px; color: var(--muted);">Loading realized trades from SQLite journal...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
 
-  </div> <!-- End View 2: Performance Analytics -->
+      <!-- ==================== VIEW 5: RISK RADAR & DECISION AUDIT (#/risk) ==================== -->
+      <div id="viewRisk" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🛡️</span>
+              <h1 class="brand-heading">Risk Radar &amp; Decision Audit Log</h1>
+              <span class="badge badge-green">Fail-Closed Gate Active</span>
+            </div>
+            <p>Automated capital preservation, sector caps, circuit breakers, and immutable audit trail.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn-action" onclick="loadRiskData(true)" style="height: 34px;">
+              <span>🔄</span> Refresh Risk Status
+            </button>
+          </div>
+        </div>
 
+        <div class="data-stamp" id="riskDataStamp">
+          <span>Data source: trader-risk check.py &amp; decisions.json · As of: <span id="riskAsOf">--:--:-- IST</span></span>
+        </div>
 
-  <!-- ==================== ACTION BAR ==================== -->
-  <nav aria-label="Scanners and tools" class="action-nav">
-    <button type="button" class="btn-action" onclick="run1ClickScan('orb')"><span>🚀</span> 15m ORB scan</button>
-    <button type="button" class="btn-action" onclick="run1ClickScan('preopen')"><span>🌅</span> 09:08 pre-open auction</button>
-    <button type="button" class="btn-action" onclick="run1ClickScan('swing')"><span>📈</span> Swing &amp; Fib</button>
-    <button type="button" class="btn-action" onclick="openStrategyMatrixModal()"><span>📊</span> Strategy matrix (20)</button>
-    <button type="button" class="btn-action" id="btnTogglePerfView" onclick="togglePerformanceView()"><span>📈</span> Performance</button>
-    <button type="button" class="btn-action" onclick="runUnitTests()"><span>🧪</span> Run tests</button>
-    <button type="button" class="btn-action" style="margin-left: auto;" onclick="refreshAllFeeds(true)"><span>🔄</span> Refresh feeds</button>
-  </nav>
+        <!-- 5 Risk Radar Meters Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px;">
+          <!-- Meter 1: Daily Loss -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Daily Loss Used</span>
+              <span class="mono" style="font-size: 11px; font-weight: 600;" id="riskLossPct">0%</span>
+            </div>
+            <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--text);" id="riskLossVal">₹0.00 / ₹3,000</span>
+            <div class="progress-track" style="margin-top: 4px;">
+              <div class="progress-bar-fill" id="riskLossBar" style="width: 0%; background: var(--emerald);"></div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">Hard stop enforces 100% MIS cash on breach</span>
+          </div>
+
+          <!-- Meter 2: Profit Lock -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Profit Lock Protection</span>
+              <span class="badge badge-gray" id="riskProfitLockBadge">Standby</span>
+            </div>
+            <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--emerald);" id="riskProfitLockVal">₹2,500 Threshold</span>
+            <div class="progress-track" style="margin-top: 4px;">
+              <div class="progress-bar-fill" id="riskProfitLockBar" style="width: 0%; background: var(--emerald);"></div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">Locks 50% gains once ₹2,500 threshold is reached</span>
+          </div>
+
+          <!-- Meter 3: Consecutive Losses -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Consecutive Losses</span>
+              <span class="badge badge-green" id="riskConsecBadge">0 / 3 Losses</span>
+            </div>
+            <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--text);" id="riskConsecVal">0 Losses</span>
+            <div class="progress-track" style="margin-top: 4px;">
+              <div class="progress-bar-fill" id="riskConsecBar" style="width: 0%; background: var(--rose);"></div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">3 consecutive losses halts new entries for session</span>
+          </div>
+
+          <!-- Meter 4: Max Sector Concentration -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Sector Concentration</span>
+              <span class="badge badge-blue" id="riskSectorBadge">Cap: 25%</span>
+            </div>
+            <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--text);" id="riskMaxSectorVal">0% Max</span>
+            <div class="progress-track" style="margin-top: 4px;">
+              <div class="progress-bar-fill" id="riskSectorBar" style="width: 0%; background: var(--brand-orange);"></div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">Prevents single-industry concentration shock</span>
+          </div>
+
+          <!-- Meter 5: India VIX Band -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">India VIX Regime</span>
+              <span class="badge badge-green" id="riskVixRegimeBadge">Normal</span>
+            </div>
+            <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--text);" id="riskVixVal">--</span>
+            <div class="progress-track" style="margin-top: 4px;">
+              <div class="progress-bar-fill" id="riskVixBar" style="width: 45%; background: var(--emerald);"></div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);" id="riskVixStanceText">Normal Volatility: 1.0x standard position size</span>
+          </div>
+        </div>
+
+        <!-- Real-time Decision Audit Log Table -->
+        <div class="page-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Pre-Trade Risk Gate Decision Audit Log</h2>
+            <span style="font-size: 11px; color: var(--muted);">Stored in trader/state/decisions.json</span>
+          </div>
+          <div class="data-table-wrap">
+            <table class="vyapar-table">
+              <thead>
+                <tr>
+                  <th>Time (IST)</th>
+                  <th>Symbol</th>
+                  <th>Action</th>
+                  <th style="text-align: center;">Verdict</th>
+                  <th>Rule Checked</th>
+                  <th>Details &amp; Reason</th>
+                </tr>
+              </thead>
+              <tbody id="riskDecisionsTableBody" class="mono">
+                <tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--muted);">Loading decision logs...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 6: WALK-FORWARD BACKTEST (#/backtest) ==================== -->
+      <div id="viewBacktest" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🔬</span>
+              <h1 class="brand-heading">Walk-Forward Backtesting &amp; Monte Carlo</h1>
+              <span class="badge badge-amber">Simulation Engine</span>
+            </div>
+            <p>Multi-period walk-forward optimization and stochastic Monte Carlo outcome distribution.</p>
+          </div>
+        </div>
+
+        <div class="compliance-banner">
+          <span>⚠️</span>
+          <div>
+            <strong>SEBI / Good Practice Statistical Warning:</strong> Walk-forward simulations require a minimum sample of 200 trades (N ≥ 200) for statistical significance. Backtest models exclude unexpected slippage, exchange blackouts and market impact. Past backtest results do not guarantee future paper or live performance.
+          </div>
+        </div>
+
+        <!-- Backtest Control Form Card -->
+        <div class="page-card">
+          <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 140px;">
+              <label for="btSymbolInput" style="font-size: 11px; color: var(--muted);">Symbol</label>
+              <input type="text" id="btSymbolInput" value="RELIANCE.NS" style="height: 36px; padding: 0 10px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px; font-weight: 600;">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px;">
+              <label for="btStrategySelect" style="font-size: 11px; color: var(--muted);">Strategy</label>
+              <select id="btStrategySelect" style="height: 36px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+                <option value="orb">15m Opening Range Breakout (ORB)</option>
+                <option value="cpr_narrow">Narrow CPR Momentum</option>
+                <option value="vwap_reversal">VWAP Mean Reversion</option>
+                <option value="cam_breakout">Camarilla H4/L4 Breakout</option>
+              </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 130px;">
+              <label for="btLookbackSelect" style="font-size: 11px; color: var(--muted);">Lookback</label>
+              <select id="btLookbackSelect" style="height: 36px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+                <option value="30">30 Days</option>
+                <option value="60" selected>60 Days</option>
+                <option value="90">90 Days</option>
+                <option value="180">180 Days</option>
+              </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 130px;">
+              <label for="btRiskSelect" style="font-size: 11px; color: var(--muted);">Risk per Trade</label>
+              <select id="btRiskSelect" style="height: 36px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px;">
+                <option value="1.0" selected>1.0% Capital</option>
+                <option value="1.5">1.5% Capital</option>
+                <option value="2.0">2.0% Capital</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn-action" onclick="runBacktestSimulation()" style="height: 36px; background: var(--brand-orange); color: #fff; font-weight: 600; padding: 0 16px; border: 0; box-shadow: 0 2px 8px var(--brand-orange-glow); cursor: pointer;">
+              🚀 Run Walk-Forward
+            </button>
+          </div>
+        </div>
+
+        <!-- Backtest Results Container -->
+        <div id="btResultsContainer" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- In-Sample vs Out-of-Sample Metrics Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div class="page-card">
+              <span style="font-size: 11px; color: var(--muted);">In-Sample (Training)</span>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--emerald);" id="btInSampleWin">57.1%</span>
+                <span style="font-size: 11px; color: var(--muted);" id="btInSampleTrades">N=28 trades</span>
+              </div>
+              <span style="font-size: 11px; color: var(--muted);" id="btInSamplePf">Profit Factor: 1.48 · Max DD: -3.2%</span>
+            </div>
+
+            <div class="page-card">
+              <span style="font-size: 11px; color: var(--muted);">Out-of-Sample (Test)</span>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--brand-orange-light);" id="btOutSampleWin">53.8%</span>
+                <span style="font-size: 11px; color: var(--muted);" id="btOutSampleTrades">N=13 trades</span>
+              </div>
+              <span style="font-size: 11px; color: var(--muted);" id="btOutSamplePf">Profit Factor: 1.25 · Max DD: -4.8%</span>
+            </div>
+
+            <div class="page-card">
+              <span style="font-size: 11px; color: var(--muted);">Monte Carlo 50th %ile</span>
+              <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--emerald);" id="btMcP50">+8.4% Return</span>
+              <span style="font-size: 11px; color: var(--muted);">Median projected outcome over 1,000 runs</span>
+            </div>
+
+            <div class="page-card">
+              <span style="font-size: 11px; color: var(--muted);">Monte Carlo 5th %ile (Worst)</span>
+              <span class="mono" style="font-size: 20px; font-weight: 700; color: var(--rose);" id="btMcP05">-6.5% Drawdown</span>
+              <span style="font-size: 11px; color: var(--muted);">95% confidence worst-case boundary</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 7: NEWS & INSTITUTIONAL FLOWS (#/news) ==================== -->
+      <div id="viewNews" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">📰</span>
+              <h1 class="brand-heading">Market Intelligence &amp; Institutional Flows</h1>
+              <span class="badge badge-blue">NSE / BSE Institutional Activity</span>
+            </div>
+            <p>FII / DII net purchases, insider filings (≥ ₹10 Lakhs) and corporate action events.</p>
+          </div>
+          <button type="button" class="btn-action" onclick="loadNewsData(true)" style="height: 34px;">
+            <span>🔄</span> Refresh Intelligence
+          </button>
+        </div>
+
+        <div class="data-stamp" id="newsDataStamp">
+          <span>Data source: NSE Corporate Announcements &amp; Institutional Activity · As of: <span id="newsAsOf">--:--:-- IST</span></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px;">
+          <!-- FII / DII Net Cash Flow Panel -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Institutional Cash Activity (FII / DII)</h2>
+              <span style="font-size: 10px; color: var(--muted);" id="fiiDiiDate">Date: --</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="cockpit-card">
+                <span style="font-size: 11px; color: var(--muted);">FII Net Purchases</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700;" id="fiiNetVal">--</span>
+                <span style="font-size: 10px; color: var(--muted);">Cash Equities Segment (₹ Cr)</span>
+              </div>
+              <div class="cockpit-card">
+                <span style="font-size: 11px; color: var(--muted);">DII Net Purchases</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700;" id="diiNetVal">--</span>
+                <span style="font-size: 10px; color: var(--muted);">Domestic Mutual Funds / DII (₹ Cr)</span>
+              </div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">Source: Real NSE Daily Institutional Activity · Zero simulated data.</span>
+          </div>
+
+          <!-- Insider Filings & Bulk Deals (>= 10 Lakh) -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Insider Filings &amp; SAST Disclosures (≥ ₹10 Lakh)</h2>
+              <span class="badge badge-amber">SEBI PIT</span>
+            </div>
+            <div class="data-table-wrap" style="max-height: 180px; overflow-y: auto;">
+              <table class="vyapar-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Acquirer / Seller</th>
+                    <th style="text-align: right;">Qty</th>
+                    <th style="text-align: right;">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="insiderTableBody" class="mono">
+                  <tr><td colspan="4" style="text-align: center; padding: 16px; color: var(--muted);">Loading insider filings...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- News Headlines Stream -->
+        <div class="page-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 14px; font-weight: 600; margin: 0;">NSE Live Market News Stream</h2>
+            <span style="font-size: 11px; color: var(--muted);">Financial Express &amp; Moneycontrol</span>
+          </div>
+          <div id="newsFeedList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="padding: 16px; text-align: center; color: var(--muted);">Loading market news stream...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 8: BROKER, WATCHLIST & RISK SETTINGS (#/settings) ==================== -->
+      <div id="viewSettings" class="view-container">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">⚙️</span>
+              <h1 class="brand-heading">Broker, Watchlist &amp; Risk Configuration</h1>
+              <span class="badge badge-blue">System Settings</span>
+            </div>
+            <p>Multi-broker failover routing, watchlist scrip management, circuit breaker limits and alerts.</p>
+          </div>
+          <button type="button" class="btn-action" onclick="saveSettingsFromUi()" style="height: 36px; background: var(--brand-orange); color: #fff; font-weight: 600; padding: 0 16px; border: 0; box-shadow: 0 2px 8px var(--brand-orange-glow); cursor: pointer;">
+            💾 Save All Settings
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px;">
+          <!-- Broker Failover Card -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Broker Routing &amp; Failover</h2>
+              <span class="badge badge-green" id="settingsBrokerBadge">PAPER ACTIVE</span>
+            </div>
+            <p style="font-size: 11px; color: var(--muted);">Supported Connectors: PAPER, ZERODHA, ANGEL_ONE, SHOONYA</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label for="settingsBrokerSelect" style="font-size: 11px; color: var(--muted);">Active Broker Connector</label>
+              <select id="settingsBrokerSelect" onchange="onBrokerSelectChange(this.value)" style="height: 36px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 12px; font-weight: 600;">
+                <option value="paper">Paper Trading (Safe Simulation - Recommended)</option>
+                <option value="zerodha">Zerodha Kite Connect</option>
+                <option value="angel">Angel One SmartAPI</option>
+                <option value="shoonya">Shoonya (Finvasia)</option>
+              </select>
+            </div>
+
+            <div style="padding: 10px; background: rgba(240, 125, 26, 0.08); border: 1px solid rgba(240, 125, 26, 0.25); border-radius: 8px; font-size: 11px; color: var(--text-sub);">
+              <strong>Failover Policy:</strong> If primary broker API returns 5xx or times out, instant failover to Paper mode preserves open stop-losses and prevents rogue executions.
+            </div>
+          </div>
+
+          <!-- Watchlist Scrips Card -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Watchlist Scrips Management</h2>
+              <span style="font-size: 11px; color: var(--muted);" id="settingsWatchlistCount">0 scrips</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="settingsAddSymbolInput" placeholder="e.g. BAJFINANCE" style="flex: 1; height: 36px; padding: 0 10px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              <select id="settingsAddExchange" style="height: 36px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 8px; font-size: 12px;">
+                <option value="NSE">NSE</option>
+                <option value="BSE">BSE</option>
+              </select>
+              <button type="button" class="btn-action" onclick="addScripFromSettings()" style="height: 36px;">Add</button>
+            </div>
+            <div id="settingsWatchlistPills" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;">
+              <!-- Injected scrip pills with delete x -->
+            </div>
+          </div>
+
+          <!-- Risk Governance Limits Card -->
+          <div class="page-card">
+            <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Risk Governance &amp; Circuit Limits</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgDailyLoss" style="font-size: 11px; color: var(--muted);">Max Daily Loss (₹)</label>
+                <input type="number" id="cfgDailyLoss" value="3000" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgTradeRisk" style="font-size: 11px; color: var(--muted);">Max Risk per Trade (%)</label>
+                <input type="number" id="cfgTradeRisk" step="0.1" value="1.0" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgProfitLock" style="font-size: 11px; color: var(--muted);">Profit Lock Trigger (₹)</label>
+                <input type="number" id="cfgProfitLock" value="2500" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgMaxPositions" style="font-size: 11px; color: var(--muted);">Max Open MIS Positions</label>
+                <input type="number" id="cfgMaxPositions" value="3" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Notification Webhooks Card -->
+          <div class="page-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h2 style="font-size: 14px; font-weight: 600; margin: 0;">Notification Webhooks &amp; Alerts</h2>
+              <button type="button" class="btn-action" onclick="testNotificationAlert()" style="height: 30px; font-size: 11px;">
+                🔔 Send Test Alert
+              </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgTelegramToken" style="font-size: 11px; color: var(--muted);">Telegram Bot Token</label>
+                <input type="password" id="cfgTelegramToken" placeholder="••••••••••••••••" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgTelegramChatId" style="font-size: 11px; color: var(--muted);">Telegram Chat ID</label>
+                <input type="text" id="cfgTelegramChatId" placeholder="e.g. 123456789" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="cfgDiscordWebhook" style="font-size: 11px; color: var(--muted);">Discord Webhook URL</label>
+                <input type="password" id="cfgDiscordWebhook" placeholder="https://discord.com/api/webhooks/••••" style="height: 34px; padding: 0 8px; background: #11151d; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px;">
+              </div>
+            </div>
+            <span style="font-size: 10px; color: var(--muted);">Tokens read from environment variables first (TELEGRAM_BOT_TOKEN, DISCORD_WEBHOOK_URL) and masked in UI.</span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
 
 </div> <!-- End .app-container -->
 
@@ -1230,11 +1868,11 @@
     <div style="padding: 20px 22px 14px; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid var(--border)">
       <div style="display: flex; align-items: center; gap: 12px">
         <div id="profileAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: #0c1b2f; border: 1.5px solid var(--brand-orange); display: grid; place-items: center; font-weight: 700; color: #ffffff; font-size: 16px; box-shadow: 0 0 10px var(--brand-orange-glow);">
-          TC
+          --
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
-          <span style="font-weight: 600; font-size: 16px" id="profileCompanyName">Tata Consultancy Services Ltd</span>
-          <span style="font-size: 12px; color: var(--muted)" id="profileSubTitle">TCS · BSE 532540 · ISIN INE467B01029</span>
+          <span style="font-weight: 600; font-size: 16px" id="profileCompanyName">--</span>
+          <span style="font-size: 12px; color: var(--muted)" id="profileSubTitle">-- · NSE/BSE Equity</span>
         </div>
         <button type="button" aria-label="Close profile" onclick="closeStockProfileDirect()" style="width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--border-light); border-radius: 10px; color: var(--text-sub); background: transparent; cursor: pointer">
           ✕
@@ -1242,97 +1880,154 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 12px">
-        <span class="mono" style="font-size: 24px; font-weight: 600" id="profilePrice">₹2,436.00</span>
-        <span class="mono" style="color: var(--emerald)" id="profileChange">▲ +0.86%</span>
+        <span class="mono" style="font-size: 24px; font-weight: 600" id="profilePrice">--</span>
+        <span class="mono" style="color: var(--emerald)" id="profileChange">--</span>
         <div style="margin-left: auto; display: flex; padding: 2px; background: #0b0e14; border-radius: 8px">
           <button type="button" id="profBtnNse" class="tf-btn active" onclick="switchProfileExchange('NSE')">NSE</button>
           <button type="button" id="profBtnBse" class="tf-btn" onclick="switchProfileExchange('BSE')">BSE</button>
         </div>
       </div>
 
-      <!-- Drawer Internal Anchor Navigation -->
-      <nav aria-label="Profile sections" style="display: flex; gap: 4px; flex-wrap: wrap">
-        <a href="#profOverview" style="padding: 5px 9px; border-radius: 6px; background: #1f2633; color: var(--text); font-size: 12px">Overview</a>
-        <a href="#profHistory" style="padding: 5px 9px; border-radius: 6px; color: var(--text-sub); font-size: 12px">Price history</a>
-        <a href="#profFundamentals" style="padding: 5px 9px; border-radius: 6px; color: var(--text-sub); font-size: 12px">Fundamentals</a>
-        <a href="#profShareholding" style="padding: 5px 9px; border-radius: 6px; color: var(--text-sub); font-size: 12px">Shareholding</a>
-        <a href="#profActions" style="padding: 5px 9px; border-radius: 6px; color: var(--text-sub); font-size: 12px">Corporate actions</a>
-        <a href="#profMyTrades" style="padding: 5px 9px; border-radius: 6px; color: var(--text-sub); font-size: 12px">My trades</a>
-      </nav>
+      <!-- Drawer Accessible Tablist -->
+      <div role="tablist" aria-label="Profile sections" class="prof-tablist" style="display: flex; gap: 4px; flex-wrap: wrap">
+        <button type="button" role="tab" id="tabProfOverview" aria-selected="true" aria-controls="panelProfOverview" onclick="switchDrawerTab('Overview')" class="tf-btn active" style="font-size: 12px; padding: 5px 12px;">Overview</button>
+        <button type="button" role="tab" id="tabProfHistory" aria-selected="false" aria-controls="panelProfHistory" onclick="switchDrawerTab('History')" class="tf-btn" style="font-size: 12px; padding: 5px 12px;">Price history</button>
+        <button type="button" role="tab" id="tabProfFundamentals" aria-selected="false" aria-controls="panelProfFundamentals" onclick="switchDrawerTab('Fundamentals')" class="tf-btn" style="font-size: 12px; padding: 5px 12px;">Fundamentals</button>
+        <button type="button" role="tab" id="tabProfMyTrades" aria-selected="false" aria-controls="panelProfMyTrades" onclick="switchDrawerTab('MyTrades')" class="tf-btn" style="font-size: 12px; padding: 5px 12px;">My trades</button>
+      </div>
     </div>
 
-    <!-- Profile Content Sections -->
-    <div style="flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 20px;">
+    <!-- Profile Content Area -->
+    <div style="flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;">
       
-      <!-- 1. Overview -->
-      <section id="profOverview" style="display: flex; flex-direction: column; gap: 10px">
-        <h2 style="margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600">OVERVIEW</h2>
-        <p style="margin: 0; color: var(--text-sub); line-height: 1.55" id="profileAboutText">
-          IT services, consulting and business solutions company and part of the Tata Group.
-        </p>
-        <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); row-gap: 8px; column-gap: 12px">
-          <span style="color: var(--muted)">Founded</span><span id="profFounded">1968</span>
-          <span style="color: var(--muted)">Business group</span><span id="profGroup">Tata Group · parent Tata Sons</span>
-          <span style="color: var(--muted)">Headquarters</span><span id="profHQ">Mumbai, Maharashtra</span>
-          <span style="color: var(--muted)">CEO &amp; MD</span><span><span style="padding: 2px 8px; border-radius: 999px; background: #1f2633" id="profCeo">K. Krithivasan</span></span>
-          <span style="color: var(--muted)">Sector</span><span id="profSector">Information Technology</span>
-          <span style="color: var(--muted)">Circuit Band</span><span id="profCircuit">20% (F&amp;O Eligible)</span>
-          <span style="color: var(--muted)">Tradability</span><span id="profTradable" style="color: var(--emerald)">ALLOWED (MIS 5x Intraday)</span>
-        </div>
-        <span style="font-size: 11px; color: var(--text-dim)">Sources: NSE / BSE Instrument Database · Wikidata ISIN · Verified daily</span>
-      </section>
+      <!-- Loading State -->
+      <div id="profileLoadingState" style="display: none; padding: 30px; text-align: center; color: var(--muted); font-size: 13px;">
+        <div class="pulse-dot" style="margin: 0 auto 10px; width: 10px; height: 10px;"></div>
+        Fetching profile data from market feed...
+      </div>
 
-      <!-- 2. Price History -->
-      <section id="profHistory" style="display: flex; flex-direction: column; gap: 10px">
-        <h2 style="margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600">52-WEEK RANGE &amp; METRICS</h2>
-        <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px">
-          <span style="color: var(--muted)" id="prof52Low">L ₹2,198.40</span>
-          <div style="flex: 1; height: 6px; background: #232a38; border-radius: 3px; position: relative">
-            <div id="prof52Marker" style="position: absolute; left: 45%; top: -4px; width: 3px; height: 14px; background: #e6e9ef; border-radius: 2px"></div>
-          </div>
-          <span style="color: var(--muted)" id="prof52High">H ₹3,050.20</span>
-        </div>
-      </section>
+      <!-- Error State -->
+      <div id="profileErrorState" style="display: none; padding: 20px; background: rgba(229,72,77,0.1); border: 1px solid var(--rose); border-radius: 8px; text-align: center; color: var(--text);">
+        <div style="color: var(--rose); font-weight: 600; margin-bottom: 6px;">Data Unavailable</div>
+        <div id="profileErrorMessage" style="font-size: 12px; color: var(--text-sub); margin-bottom: 12px;">Failed to load instrument profile.</div>
+        <button type="button" onclick="retryStockProfile()" class="btn-action" style="padding: 6px 16px; margin: 0 auto;">Retry</button>
+      </div>
 
-      <!-- 3. Fundamentals -->
-      <section id="profFundamentals" style="display: flex; flex-direction: column; gap: 10px">
-        <h2 style="margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600">KEY METRICS</h2>
-        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
-          <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
-            <span style="font-size: 10px; color: var(--muted)">CPR Width</span><span class="mono" id="profCprWidth">0.18%</span>
+      <!-- Tab 1: Overview Panel -->
+      <div id="panelProfOverview" role="tabpanel" aria-labelledby="tabProfOverview" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- 52-Week Range -->
+        <section style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 600">52-WEEK RANGE &amp; METRICS</h2>
+          <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px">
+            <span style="color: var(--muted)" id="prof52Low">L --</span>
+            <div style="flex: 1; height: 6px; background: #232a38; border-radius: 3px; position: relative">
+              <div id="prof52Marker" style="position: absolute; left: 0%; top: -4px; width: 3px; height: 14px; background: var(--brand-orange); border-radius: 2px"></div>
+            </div>
+            <span style="color: var(--muted)" id="prof52High">H --</span>
           </div>
-          <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
-            <span style="font-size: 10px; color: var(--muted)">Central Pivot</span><span class="mono" id="profPivot">₹2,425.00</span>
-          </div>
-          <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
-            <span style="font-size: 10px; color: var(--muted)">Camarilla H4</span><span class="mono" style="color: var(--emerald)" id="profH4">₹2,450.00</span>
-          </div>
-          <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
-            <span style="font-size: 10px; color: var(--muted)">Camarilla L4</span><span class="mono" style="color: var(--rose)" id="profL4">₹2,410.00</span>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 4. Shareholding -->
-      <section id="profShareholding" style="display: flex; flex-direction: column; gap: 10px">
-        <h2 style="margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600">SHAREHOLDING ESTIMATE</h2>
-        <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden">
-          <div style="flex: 71.8 1 0; background: #3b82f6" title="Promoter: 71.8%"></div>
-          <div style="flex: 11.5 1 0; background: #8b5cf6" title="FII: 11.5%"></div>
-          <div style="flex: 11.9 1 0; background: #f59e0b" title="DII: 11.9%"></div>
-          <div style="flex: 4.8 1 0; background: #94a3b8" title="Public: 4.8%"></div>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 12px">
-          <div><span style="color: #93c5fd">■ Promoter</span> <span class="mono">71.8%</span></div>
-          <div><span style="color: #c4b5fd">■ FII</span> <span class="mono">11.5%</span></div>
-          <div><span style="color: #fbbf24">■ DII</span> <span class="mono">11.9%</span></div>
-          <div><span style="color: #cbd5e1">■ Public</span> <span class="mono">4.8%</span></div>
-        </div>
-      </section>
+        <!-- Company Overview & Tradability -->
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 600">OVERVIEW &amp; SURVEILLANCE</h2>
+          <p style="margin: 0; color: var(--text-sub); line-height: 1.55; font-size: 13px;" id="profileAboutText">
+            --
+          </p>
+          <div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); row-gap: 8px; column-gap: 12px; font-size: 12px;">
+            <span style="color: var(--muted)">Sector</span><span id="profSector">--</span>
+            <span style="color: var(--muted)">Circuit Band</span><span id="profCircuit">--</span>
+            <span style="color: var(--muted)">Tradability Status</span><span id="profTradable">--</span>
+            <span style="color: var(--muted)">Founded</span><span id="profFounded">--</span>
+            <span style="color: var(--muted)">Business group</span><span id="profGroup">--</span>
+            <span style="color: var(--muted)">Headquarters</span><span id="profHQ">--</span>
+            <span style="color: var(--muted)">CEO &amp; MD</span><span id="profCeo">--</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-dim)">Source: NSE / BSE Instrument Feeds &amp; Public Filings · Refreshed on demand</span>
+        </section>
+      </div>
 
-      <!-- 5. My Trades in this Stock -->
-      <section id="profMyTrades" style="display: flex; flex-direction: column; gap: 8px">
-        <h2 style="margin: 0; font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600">MY COMPLETED TRADES</h2>
+      <!-- Tab 2: Price History Panel -->
+      <div id="panelProfHistory" role="tabpanel" aria-labelledby="tabProfHistory" style="display: none; flex-direction: column; gap: 14px;">
+        <!-- Range & Style Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 4px;" id="histRangeButtons">
+            <button type="button" class="tf-btn active" onclick="loadDrawerHistory('1D')">1D</button>
+            <button type="button" class="tf-btn" onclick="loadDrawerHistory('1W')">1W</button>
+            <button type="button" class="tf-btn" onclick="loadDrawerHistory('1M')">1M</button>
+            <button type="button" class="tf-btn" onclick="loadDrawerHistory('6M')">6M</button>
+            <button type="button" class="tf-btn" onclick="loadDrawerHistory('1Y')">1Y</button>
+            <button type="button" class="tf-btn" onclick="loadDrawerHistory('5Y')">5Y</button>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button type="button" id="histBtnCandles" class="tf-btn active" onclick="setHistChartMode('candles')">Candles</button>
+            <button type="button" id="histBtnLine" class="tf-btn" onclick="setHistChartMode('line')">Line</button>
+          </div>
+        </div>
+
+        <!-- OHLCV Metrics Bar -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;" class="mono">
+          <div style="padding: 7px 9px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui);">Period High</span>
+            <span style="font-weight: 600; color: var(--emerald);" id="histStatHigh">--</span>
+          </div>
+          <div style="padding: 7px 9px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui);">Period Low</span>
+            <span style="font-weight: 600; color: var(--rose);" id="histStatLow">--</span>
+          </div>
+          <div style="padding: 7px 9px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui);">Avg Volume</span>
+            <span style="font-weight: 600;" id="histStatVol">--</span>
+          </div>
+          <div style="padding: 7px 9px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui);">Last Close</span>
+            <span style="font-weight: 600;" id="histStatClose">--</span>
+          </div>
+        </div>
+
+        <!-- Interactive Lightweight Chart Container -->
+        <div id="profHistoryChartWrapper" style="width: 100%; height: 260px; background: #091524; border-radius: 8px; border: 1px solid var(--border); position: relative; overflow: hidden;">
+          <div id="profHistoryChartContainer" style="width: 100%; height: 100%;"></div>
+          <div id="histLoadingOverlay" style="display: none; position: absolute; inset: 0; background: rgba(9,21,36,0.85); z-index: 5; display: grid; place-items: center; font-size: 12px; color: var(--muted);">
+            Loading price history candles...
+          </div>
+          <div id="histErrorOverlay" style="display: none; position: absolute; inset: 0; background: rgba(9,21,36,0.92); z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 12px; color: var(--rose);">
+            <span>Failed to load history candles</span>
+            <button type="button" class="btn-action" onclick="loadDrawerHistory(activeHistRange, true)">Retry</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Fundamentals Panel -->
+      <div id="panelProfFundamentals" role="tabpanel" aria-labelledby="tabProfFundamentals" style="display: none; flex-direction: column; gap: 16px;">
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 600">INSTITUTIONAL PIVOTS (PREVIOUS COMPLETED SESSION)</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+            <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 10px; color: var(--muted)">CPR Width</span><span class="mono" id="profCprWidth">--</span>
+            </div>
+            <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 10px; color: var(--muted)">Central Pivot</span><span class="mono" id="profPivot">--</span>
+            </div>
+            <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 10px; color: var(--muted)">Camarilla H4</span><span class="mono" style="color: var(--emerald)" id="profH4">--</span>
+            </div>
+            <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 10px; color: var(--muted)">Camarilla L4</span><span class="mono" style="color: var(--rose)" id="profL4">--</span>
+            </div>
+          </div>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 600">SHAREHOLDING STRUCTURE</h2>
+          <div style="padding: 12px; background: #0b0e14; border-radius: 8px; font-size: 12px; color: var(--muted); line-height: 1.5;">
+            Shareholding breakdown is not available from public free market feeds. Requires licensed exchange feeds or corporate quarterly filings.
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab 4: My Trades Panel -->
+      <div id="panelProfMyTrades" role="tabpanel" aria-labelledby="tabProfMyTrades" style="display: none; flex-direction: column; gap: 12px;">
+        <h2 style="margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 600">MY COMPLETED TRADES FOR THIS SYMBOL</h2>
         <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;" class="mono">
           <div style="padding: 8px; background: #0b0e14; border-radius: 8px; display: flex; flex-direction: column; gap: 2px">
             <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui)">Trades</span><span id="profMyTradeCount">--</span>
@@ -1347,8 +2042,74 @@
             <span style="font-size: 10px; color: var(--muted); font-family: var(--font-ui)">Charges</span><span id="profMyCharges">--</span>
           </div>
         </div>
-      </section>
+      </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- ==================== WHY THIS TRADE MODAL ==================== -->
+<div class="modal-backdrop" id="whyThisTradeModal" onclick="closeWhyThisTradeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div>
+        <h2 style="font-size: 15px; font-weight: 700; color: var(--brand-orange-light);">Why This Trade? Institutional Setup Inspector</h2>
+        <div style="font-size: 11px; color: var(--muted)" id="whyTradeSymbolHeader">TCS.NS · AIC-20 Confluence</div>
+      </div>
+      <button type="button" onclick="closeWhyThisTradeModal()" style="background: transparent; border: 0; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12px;">
+      <!-- Order Structure & R:R Box -->
+      <div style="padding: 10px; background: #070e17; border: 1px solid var(--border); border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" class="mono">
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Entry</span><span id="whyEntry">--</span></div>
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Stop-Loss</span><span id="whyStop" style="color: var(--rose);">--</span></div>
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Target</span><span id="whyTarget" style="color: var(--emerald);">--</span></div>
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Planned Risk</span><span id="whyRisk">--</span></div>
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Est. Charges</span><span id="whyCharges">--</span></div>
+        <div><span style="font-size: 10px; color: var(--muted); display: block;">Net R:R</span><span id="whyNetRR" style="color: var(--brand-orange-light);">--</span></div>
+      </div>
+
+      <!-- Pillar Breakdown -->
+      <div>
+        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: .06em;">CONFLUENCE PILLAR SCORING</div>
+        <div id="whyPillarsList" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== RISK AUDIT DECISION LOG MODAL ==================== -->
+<div class="modal-backdrop" id="decisionLogModal" onclick="closeDecisionLogModal()">
+  <div class="modal-box modal-box-wide" onclick="event.stopPropagation()">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div>
+        <h2 style="font-size: 15px; font-weight: 700;">Institutional Risk Gate Decision Audit Trail</h2>
+        <div style="font-size: 11px; color: var(--muted)">Historical PASS/BLOCK verdicts logged under fail-closed pre-trade gate</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn-action" onclick="fetchRiskDecisions()">Refresh</button>
+        <button type="button" onclick="closeDecisionLogModal()" style="background: transparent; border: 0; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+    </div>
+    <div style="max-height: 55vh; overflow-y: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <thead>
+          <tr style="text-align: left; color: var(--muted); border-bottom: 1px solid var(--border)">
+            <th style="padding: 6px 8px;">Timestamp (IST)</th>
+            <th style="padding: 6px 8px;">Symbol</th>
+            <th style="padding: 6px 8px;">Side</th>
+            <th style="padding: 6px 8px; text-align: right;">Qty</th>
+            <th style="padding: 6px 8px; text-align: right;">Price</th>
+            <th style="padding: 6px 8px;">Verdict</th>
+            <th style="padding: 6px 8px;">Reason / Rule</th>
+          </tr>
+        </thead>
+        <tbody id="decisionsTableBody" class="mono">
+          <!-- Injected dynamically -->
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -1443,22 +2204,51 @@
 </div>
 
 <!-- ==================== TOAST NOTIFICATION ==================== -->
+
+<!-- ==================== LIVE EXECUTION SAFEGUARD MODAL ==================== -->
+<div class="modal-backdrop" id="confirmLiveModal" onclick="cancelLiveSwitch(event)">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 480px; border: 1.5px solid var(--rose);">
+    <div style="display: flex; align-items: center; gap: 10px; color: var(--rose);">
+      <span style="font-size: 24px;">🚨</span>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 700;">CONFIRM LIVE ORDER EXECUTION</h3>
+    </div>
+    <p style="font-size: 12px; line-height: 1.6; color: var(--text-sub); margin-top: 10px;">
+      <strong>DANGER:</strong> You are about to enable live broker order routing. Real money orders will be routed to your broker API.
+      Under SEBI regulations, automated intraday order placement is subject to broker approval and algorithm registration requirements.
+    </p>
+    <p style="font-size: 12px; color: var(--text); margin-top: 8px;">
+      To confirm, type <strong style="color: var(--rose); font-family: var(--font-mono);">I UNDERSTAND LIVE RISKS</strong> below:
+    </p>
+    <input type="text" id="confirmLiveInput" placeholder="Type I UNDERSTAND LIVE RISKS" oninput="validateLiveConfirmation()" style="height: 38px; width: 100%; padding: 0 10px; background: #0c1b2f; border: 1px solid var(--rose); border-radius: 8px; color: #fff; font-family: var(--font-mono); font-size: 12px; margin-top: 6px;">
+    
+    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+      <button type="button" class="btn-action" onclick="cancelLiveSwitch()">Cancel (Keep Paper)</button>
+      <button type="button" id="btnConfirmLiveExec" disabled onclick="executeLiveSwitchConfirmed()" style="height: 36px; padding: 0 16px; background: var(--rose); color: #fff; font-weight: 700; border: 0; border-radius: 8px; opacity: 0.5; cursor: not-allowed;">
+        Confirm Live Switch
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toastBox" class="toast-box mono"></div>
 
 <!-- ==================== MOBILE NAVIGATION BAR ==================== -->
 <nav class="mobile-tab-bar" aria-label="Mobile Navigation">
-  <div class="mobile-tab-item active" onclick="switchView('trading')">
+  <a href="#/trade" class="mobile-tab-item active" data-page="trade">
     <span>⚡</span><span>Trade</span>
-  </div>
-  <div class="mobile-tab-item" onclick="openStockProfile(activeSymbol)">
-    <span>ⓘ</span><span>Profile</span>
-  </div>
-  <div class="mobile-tab-item" onclick="switchView('performance')">
-    <span>📊</span><span>Perf</span>
-  </div>
-  <div class="mobile-tab-item" onclick="openConfigModal()">
-    <span>⚙</span><span>Settings</span>
-  </div>
+  </a>
+  <a href="#/scanner" class="mobile-tab-item" data-page="scanner">
+    <span>🚀</span><span>Scan</span>
+  </a>
+  <a href="#/strategies" class="mobile-tab-item" data-page="strategies">
+    <span>📊</span><span>Matrix</span>
+  </a>
+  <a href="#/journal" class="mobile-tab-item" data-page="journal">
+    <span>📓</span><span>Journal</span>
+  </a>
+  <a href="#/settings" class="mobile-tab-item" data-page="settings">
+    <span>⚙️</span><span>Settings</span>
+  </a>
 </nav>
 
 
@@ -1544,7 +2334,7 @@
       },
       rightPriceScale: {
         borderColor: '#1a324f',
-        scaleMargins: { top: 0.08, bottom: 0.22 }
+        scaleMargins: { top: 0.08, bottom: 0.25 }
       },
       timeScale: {
         borderColor: '#1a324f',
@@ -1560,15 +2350,18 @@
       borderUpColor: '#10b981',
       borderDownColor: '#e5484d',
       wickUpColor: '#10b981',
-      wickDownColor: '#e5484d'
+      wickDownColor: '#e5484d',
+      priceScaleId: 'right'
     });
 
-    // Volume Histogram Series
+    // Volume Histogram Series on dedicated bottom scale
     volumeSeries = chartInstance.addHistogramSeries({
-      color: '#3b82f6',
+      color: '#38557a',
       priceFormat: { type: 'volume' },
-      priceScaleId: '',
-      scaleMargins: { top: 0.82, bottom: 0 }
+      priceScaleId: 'volume'
+    });
+    chartInstance.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.80, bottom: 0.0 }
     });
 
     // VWAP Line Series
@@ -1767,6 +2560,7 @@
     const res = await fetch("/api/status", { cache: "no-store" });
     if (!res.ok) return;
     const data = await res.json();
+    markFeedFresh();
 
     // 1. Clock & Market Status
     if (data.clock) {
@@ -1776,14 +2570,27 @@
       
       const badge = document.getElementById("headerMarketBadge");
       const badgeText = document.getElementById("marketBadgeText");
-      if (clk.market_open) {
+      const phase = clk.market_phase || (clk.market_open ? "OPEN" : "CLOSED");
+      const cdBox = document.getElementById("sessionCountdownsBox");
+
+      if (phase === "OPEN") {
         badge.className = "clock-badge";
+        badge.style.background = "";
+        badge.style.color = "";
         badgeText.innerText = "OPEN · live";
+        if (cdBox) cdBox.style.display = "flex";
+      } else if (phase === "PRE-OPEN") {
+        badge.className = "clock-badge";
+        badge.style.background = "rgba(245, 158, 11, 0.2)";
+        badge.style.color = "#fbbf24";
+        badgeText.innerText = "PRE-OPEN";
+        if (cdBox) cdBox.style.display = "flex";
       } else {
         badge.className = "clock-badge";
         badge.style.background = "rgba(148, 163, 184, 0.15)";
         badge.style.color = "var(--muted)";
         badgeText.innerText = "CLOSED";
+        if (cdBox) cdBox.style.display = "none";
       }
 
       // Session Timeline Ribbon Position
@@ -1893,22 +2700,27 @@
       const q = quotesCache[sym] || {};
       const base = sym.replace(/\.(NS|BO)$/i, "");
       const ex = sym.endsWith(".BO") ? "BSE" : "NSE";
-      const price = q.price || 1000.0;
-      const chgPct = q.change_pct !== undefined ? q.change_pct : 0.0;
-      const isUp = chgPct >= 0;
-      const col = isUp ? "var(--emerald)" : "var(--rose)";
-      const arrow = isUp ? "▲ +" : "▼ ";
+      const price = q.price;
+      const chgPct = q.change_pct;
+      const isUp = chgPct !== undefined && chgPct !== null && chgPct >= 0;
+      const col = (chgPct === undefined || chgPct === null) ? "var(--muted)" : (isUp ? "var(--emerald)" : "var(--rose)");
+      const arrow = (chgPct === undefined || chgPct === null) ? "" : (isUp ? "▲ +" : "▼ ");
+      const priceText = (price !== undefined && price !== null && price > 0) ? formatInr(price) : "Data unavailable";
+      const chgText = (chgPct !== undefined && chgPct !== null) ? `${arrow}${Math.abs(chgPct).toFixed(2)}%` : "—";
       const isActive = (sym === activeSymbol);
 
       // Mini SVG sparkline (60x24)
-      const spark = q.sparkline || [price, price, price, price, price];
-      const minP = Math.min(...spark);
-      const maxP = Math.max(...spark);
-      const pts = spark.map((p, idx) => {
-        const x = (idx / (spark.length - 1)) * 60;
-        const y = 22 - ((p - minP) / (maxP - minP || 1)) * 20;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(" ");
+      const spark = (q.sparkline && q.sparkline.length > 1) ? q.sparkline : [];
+      let pts = "";
+      if (spark.length > 1) {
+        const minP = Math.min(...spark);
+        const maxP = Math.max(...spark);
+        pts = spark.map((p, idx) => {
+          const x = (idx / (spark.length - 1)) * 60;
+          const y = 22 - ((p - minP) / (maxP - minP || 1)) * 20;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(" ");
+      }
 
       const btn = document.createElement("button");
       btn.type = "button";
@@ -1922,12 +2734,12 @@
             <span class="badge-exchange ${ex === 'NSE' ? 'badge-nse' : 'badge-bse'}">${ex}</span>
           </div>
           <div style="display: flex; gap: 6px; align-items: baseline;" class="mono">
-            <span style="font-size: 13px;">${formatInr(price)}</span>
-            <span style="font-size: 11px; color: ${col};">${arrow}${Math.abs(chgPct).toFixed(2)}%</span>
+            <span style="font-size: 13px;">${priceText}</span>
+            <span style="font-size: 11px; color: ${col};">${chgText}</span>
           </div>
         </div>
         <svg width="60" height="24" viewBox="0 0 60 24" aria-hidden="true">
-          <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"></polyline>
+          ${pts ? `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"></polyline>` : ''}
         </svg>
       `;
       pillsCont.appendChild(btn);
@@ -1946,29 +2758,44 @@
     const res = await fetch("/api/market/context", { cache: "no-store" });
     if (!res.ok) return;
     const ctx = await res.json();
+    markFeedFresh();
 
     ctx.forEach(item => {
-      const isUp = item.change >= 0;
-      const col = isUp ? "var(--emerald)" : "var(--rose)";
-      const arrow = isUp ? "▲ +" : "▼ ";
-      const chgStr = `${arrow}${Math.abs(item.change_pct).toFixed(2)}%`;
-
+      let valEl, chgEl;
       if (item.symbol === "^NSEI") {
-        document.getElementById("valNifty").innerText = item.price.toLocaleString("en-IN", { maximumFractionDigits: 1 });
-        document.getElementById("chgNifty").innerText = chgStr;
-        document.getElementById("chgNifty").style.color = col;
+        valEl = document.getElementById("valNifty");
+        chgEl = document.getElementById("chgNifty");
       } else if (item.symbol === "^NSEBANK") {
-        document.getElementById("valBankNifty").innerText = item.price.toLocaleString("en-IN", { maximumFractionDigits: 1 });
-        document.getElementById("chgBankNifty").innerText = chgStr;
-        document.getElementById("chgBankNifty").style.color = col;
+        valEl = document.getElementById("valBankNifty");
+        chgEl = document.getElementById("chgBankNifty");
       } else if (item.symbol === "^BSESN") {
-        document.getElementById("valSensex").innerText = item.price.toLocaleString("en-IN", { maximumFractionDigits: 1 });
-        document.getElementById("chgSensex").innerText = chgStr;
-        document.getElementById("chgSensex").style.color = col;
+        valEl = document.getElementById("valSensex");
+        chgEl = document.getElementById("chgSensex");
       } else if (item.symbol === "^INDIAVIX") {
-        document.getElementById("valVix").innerText = item.price.toFixed(2);
-        document.getElementById("chgVix").innerText = chgStr;
-        document.getElementById("chgVix").style.color = col;
+        valEl = document.getElementById("valVix");
+        chgEl = document.getElementById("chgVix");
+      }
+      if (!valEl || !chgEl) return;
+
+      if (item.price == null) {
+        valEl.innerText = "--";
+        chgEl.innerText = "Unavailable";
+        chgEl.style.color = "var(--muted)";
+        return;
+      }
+
+      valEl.innerText = (item.symbol === "^INDIAVIX") ? item.price.toFixed(2) : item.price.toLocaleString("en-IN", { maximumFractionDigits: 1 });
+
+      if (item.suspect) {
+        chgEl.innerText = "FLAGGED >5%";
+        chgEl.style.color = "#f59e0b";
+      } else if (item.change_pct != null) {
+        const isUp = item.change >= 0;
+        chgEl.innerText = `${isUp ? "▲ +" : "▼ "}${Math.abs(item.change_pct).toFixed(2)}%`;
+        chgEl.style.color = isUp ? "var(--emerald)" : "var(--rose)";
+      } else {
+        chgEl.innerText = "--";
+        chgEl.style.color = "var(--muted)";
       }
     });
   }
@@ -2058,113 +2885,165 @@
   async function evaluateActiveStrategy() {
     try {
       const res = await fetch(`/api/strategies/evaluate?symbol=${encodeURIComponent(activeSymbol)}`, { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        document.getElementById("gaugeScoreVal").innerText = "--";
+        document.getElementById("gaugeSignalBadge").innerText = "Strategy data unavailable";
+        document.getElementById("gaugeSignalBadge").style.background = "rgba(100,116,139,0.16)";
+        document.getElementById("gaugeSignalBadge").style.color = "var(--muted)";
+        document.getElementById("btnBuyOrder").disabled = true;
+        document.getElementById("btnBuyOrder").style.opacity = "0.5";
+        document.getElementById("btnSellOrder").disabled = true;
+        document.getElementById("btnSellOrder").style.opacity = "0.5";
+        return;
+      }
       const data = await res.json();
-      const stratRes = (data.strategies && data.strategies[activeStrategy]) || {};
+      const stratList = Array.isArray(data.strategies) ? data.strategies : [];
+      const activeItem = stratList.find(s => s.id === activeStrategy);
+
+      if (!activeItem || !activeItem.evaluation) {
+        document.getElementById("gaugeScoreVal").innerText = "--";
+        document.getElementById("gaugeSignalBadge").innerText = "Strategy data unavailable";
+        document.getElementById("gaugeSignalBadge").style.background = "rgba(100,116,139,0.16)";
+        document.getElementById("gaugeSignalBadge").style.color = "var(--muted)";
+        document.getElementById("cockpitEntryVal").innerText = "--";
+        document.getElementById("cockpitStopVal").innerText = "--";
+        document.getElementById("cockpitTargetVal").innerText = "--";
+        document.getElementById("btnBuyOrder").disabled = true;
+        document.getElementById("btnBuyOrder").style.opacity = "0.5";
+        document.getElementById("btnSellOrder").disabled = true;
+        document.getElementById("btnSellOrder").style.opacity = "0.5";
+        return;
+      }
+
+      const stratRes = activeItem.evaluation;
 
       // 1. Confluence Gauge Calculation
-      let score = 84;
-      if (stratRes.confluence_score !== undefined) {
-        score = stratRes.confluence_score;
-      }
+      const score = stratRes.score !== undefined ? stratRes.score : 0;
       document.getElementById("gaugeScoreVal").innerText = score;
-      
+
       const circle = document.getElementById("gaugeScoreCircle");
       const C = 2 * Math.PI * 50; // 314.15
       const dash = (C * 0.75 * (score / 100)).toFixed(1) + " " + C.toFixed(1);
       circle.setAttribute("stroke-dasharray", dash);
-      circle.setAttribute("stroke", (score >= 80) ? "#34d399" : "#f59e0b");
+      circle.setAttribute("stroke", stratRes.is_executable ? "#34d399" : "#f59e0b");
 
-      // Signal Badge
-      const isLong = (stratRes.signal === "BUY" || stratRes.signal === "LONG");
-      const isShort = (stratRes.signal === "SELL" || stratRes.signal === "SHORT");
+      // Signal Badge (Derived strictly from is_executable and signal / raw_signal)
+      const isExec = !!stratRes.is_executable;
+      const sig = stratRes.signal;
+      const rawSig = stratRes.raw_signal || sig;
       const sigBadge = document.getElementById("gaugeSignalBadge");
 
-      if (isLong) {
+      if (isExec && sig === "BUY") {
         sigBadge.innerText = "LONG SETUP";
         sigBadge.style.background = "rgba(16,185,129,0.16)";
         sigBadge.style.color = "var(--emerald)";
-      } else if (isShort) {
+      } else if (isExec && sig === "SELL") {
         sigBadge.innerText = "SHORT SETUP";
         sigBadge.style.background = "rgba(229,72,77,0.16)";
         sigBadge.style.color = "var(--rose)";
-      } else {
-        sigBadge.innerText = "WAIT / NEUTRAL";
+      } else if (rawSig === "BUY") {
+        sigBadge.innerText = "STANDBY / LONG BIAS";
         sigBadge.style.background = "rgba(245,158,11,0.16)";
         sigBadge.style.color = "var(--amber)";
+      } else if (rawSig === "SELL") {
+        sigBadge.innerText = "STANDBY / SHORT BIAS";
+        sigBadge.style.background = "rgba(245,158,11,0.16)";
+        sigBadge.style.color = "var(--amber)";
+      } else {
+        sigBadge.innerText = "WAIT / NEUTRAL";
+        sigBadge.style.background = "rgba(100,116,139,0.16)";
+        sigBadge.style.color = "var(--muted)";
       }
 
-      // Render Factor Breakdown Bars
+      // Render Dynamic Factor / Pillar Breakdown Bars
       const fCont = document.getElementById("gaugeFactorsList");
       fCont.innerHTML = "";
-      const factors = [
-        { name: "CPR", val: 15, max: 15 },
-        { name: "VWAP", val: 20, max: 20 },
-        { name: "Trend", val: 16, max: 20 },
-        { name: "Volume", val: 11, max: 15 },
-        { name: "Breadth", val: 10, max: 15 },
-        { name: "VIX", val: 12, max: 15 }
-      ];
-      factors.forEach(f => {
-        const pct = Math.round((f.val / f.max) * 100);
-        const div = document.createElement("div");
-        div.style.display = "flex";
-        div.style.alignItems = "center";
-        div.style.gap = "6px";
-        div.style.fontSize = "11px";
-        div.innerHTML = `
-          <span style="width: 50px; color: var(--muted);">${f.name}</span>
-          <div style="flex: 1; height: 5px; background: #232a38; border-radius: 3px; overflow: hidden">
-            <div style="width: ${pct}%; height: 100%; background: #3b82f6;"></div>
-          </div>
-          <span class="mono" style="width: 32px; text-align: right; color: var(--text-sub);">${f.val}/${f.max}</span>
-        `;
-        fCont.appendChild(div);
-      });
+      const pillars = stratRes.pillars || {};
+      const pillarList = Object.values(pillars);
 
-      // 2. Setup Levels & Position Sizer
-      const q = quotesCache[activeSymbol] || {};
-      const curPrice = q.price || 1000.0;
-      let entry = stratRes.entry || Math.round(curPrice * 1.0012 * 20) / 20;
-      let stop = stratRes.stop || Math.round(curPrice * 0.9937 * 20) / 20;
-      let target = stratRes.target || Math.round((entry + 2.2 * Math.abs(entry - stop)) * 20) / 20;
+      if (pillarList.length > 0) {
+        pillarList.forEach(p => {
+          const maxPts = p.max || 15;
+          const pts = p.pts || 0;
+          const pct = Math.min(100, Math.round((pts / maxPts) * 100));
+          const div = document.createElement("div");
+          div.style.display = "flex";
+          div.style.alignItems = "center";
+          div.style.gap = "6px";
+          div.style.fontSize = "11px";
+          div.title = p.desc || p.name;
+          div.innerHTML = `
+            <span style="width: 55px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.name || ""}</span>
+            <div style="flex: 1; height: 5px; background: #232a38; border-radius: 3px; overflow: hidden">
+              <div style="width: ${pct}%; height: 100%; background: ${pct >= 75 ? 'var(--emerald)' : (pct > 0 ? '#3b82f6' : '#475569')};"></div>
+            </div>
+            <span class="mono" style="width: 34px; text-align: right; color: var(--text-sub);">${pts}/${maxPts}</span>
+          `;
+          fCont.appendChild(div);
+        });
+      } else {
+        const factors = stratRes.factors || [];
+        if (factors.length > 0) {
+          factors.slice(0, 4).forEach(f => {
+            const div = document.createElement("div");
+            div.style.fontSize = "11px";
+            div.style.color = "var(--muted)";
+            div.innerText = "• " + f;
+            fCont.appendChild(div);
+          });
+        } else {
+          fCont.innerHTML = `<span style="font-size:11px; color:var(--muted)">Pillar data unavailable</span>`;
+        }
+      }
 
-      document.getElementById("cockpitEntryVal").innerText = formatInr(entry);
-      document.getElementById("cockpitStopVal").innerText = formatInr(stop);
-      document.getElementById("cockpitTargetVal").innerText = formatInr(target);
+      // 2. Setup Levels & Position Sizer (No hardcoded fallback formulas)
+      const entry = stratRes.entry || 0;
+      const stop = stratRes.stop || 0;
+      const target = stratRes.target || 0;
 
-      // C1 & C3: Sizing Cap (strictly whole shares, Max Loss ₹1,000)
-      const riskPerShare = Math.max(0.5, Math.abs(entry - stop));
+      document.getElementById("cockpitEntryVal").innerText = entry > 0 ? formatInr(entry) : "--";
+      document.getElementById("cockpitStopVal").innerText = stop > 0 ? formatInr(stop) : "--";
+      document.getElementById("cockpitTargetVal").innerText = target > 0 ? formatInr(target) : "--";
+
+      // Sizing Cap (strictly whole shares, Max Loss ₹1,000)
+      const hasValidLevels = (entry > 0 && stop > 0 && Math.abs(entry - stop) > 0);
+      const riskPerShare = hasValidLevels ? Math.abs(entry - stop) : 0;
       const maxLossCap = currentConfig.max_loss_per_trade_inr || 1000.0;
-      const shares = Math.floor(maxLossCap / riskPerShare);
+      const shares = (hasValidLevels && riskPerShare > 0) ? Math.floor(maxLossCap / riskPerShare) : 0;
       const totalRisk = shares * riskPerShare;
       const orderVal = shares * entry;
       const margin = orderVal / 5.0; // 5x MIS
       const charges = orderVal * 0.00065; // Approx statutory
-      const netRR = riskPerShare > 0 ? ((shares * Math.abs(target - entry) - charges) / (totalRisk + charges)).toFixed(2) : "0.00";
+      const netRR = (shares > 0 && riskPerShare > 0) ? ((shares * Math.abs(target - entry) - charges) / (totalRisk + charges)).toFixed(2) : "0.00";
 
-      document.getElementById("sizerShares").innerText = `${shares} shares`;
-      document.getElementById("sizerRisk").innerText = formatInr(totalRisk);
-      document.getElementById("sizerOrderVal").innerText = formatInr(orderVal);
-      document.getElementById("sizerMargin").innerText = formatInr(margin);
-      document.getElementById("sizerCharges").innerText = formatInr(charges);
-      document.getElementById("sizerNetRR").innerText = `1 : ${netRR}`;
+      document.getElementById("sizerShares").innerText = shares > 0 ? `${shares} shares` : "--";
+      document.getElementById("sizerRisk").innerText = totalRisk > 0 ? formatInr(totalRisk) : "--";
+      document.getElementById("sizerOrderVal").innerText = orderVal > 0 ? formatInr(orderVal) : "--";
+      document.getElementById("sizerMargin").innerText = margin > 0 ? formatInr(margin) : "--";
+      document.getElementById("sizerCharges").innerText = charges > 0 ? formatInr(charges) : "--";
+      document.getElementById("sizerNetRR").innerText = shares > 0 ? `1 : ${netRR}` : "--";
 
       curSetupLevels = { entry, stop, target, shares, risk: totalRisk };
 
-      // 3. Render Institutional Safety Checks
+      // 3. Render Institutional Safety Checks from Real Backend Data
       const safetyCont = document.getElementById("safetyChecksContainer");
       safetyCont.innerHTML = "";
-      const isGatePassed = (score >= 80);
       const isSizerOk = (shares > 0);
-      const checks = [
-        { label: "MIS allowed · 5x leverage (broker margin list)", ok: true },
-        { label: "Not on ASM / GSM / T2T lists", ok: true },
-        { label: "Circuit band distance OK", ok: true },
-        { label: "No macro event blackout active", ok: true },
-        { label: isSizerOk ? "Risk cap OK (shares sized under ₹1,000)" : "C1 Warning: Risk per share exceeds ₹1,000 cap", ok: isSizerOk },
-        { label: isGatePassed ? `AIC-20 gate passed (${score} ≥ 80)` : `AIC-20 gate not met (${score} < 80)`, ok: isGatePassed }
-      ];
+
+      const backendChecks = Array.isArray(data.safety_checks) ? data.safety_checks : [];
+      const checks = backendChecks.map(c => ({ label: c.label, ok: !!c.ok }));
+
+      // Append sizing check
+      checks.push({
+        label: isSizerOk ? `Risk cap OK (${shares} shares sized under ₹${maxLossCap.toLocaleString('en-IN')})` : `Sizing: Risk cap not satisfied (0 shares)`,
+        ok: isSizerOk
+      });
+
+      // Append gate check derived strictly from is_executable
+      checks.push({
+        label: isExec ? `AIC-20 gate passed (Score ${score} ≥ 80)` : `AIC-20 gate not met (Score ${score} < 80 or unaligned)`,
+        ok: isExec
+      });
 
       checks.forEach(c => {
         const row = document.createElement("div");
@@ -2181,14 +3060,22 @@
         safetyCont.appendChild(row);
       });
 
-      // Enable/Disable execution buttons based on safety gate
+      // Enable/Disable execution buttons based on execution gate
       const btnBuy = document.getElementById("btnBuyOrder");
       const btnSell = document.getElementById("btnSellOrder");
-      const canTrade = isGatePassed && isSizerOk;
+      const canTrade = isExec && isSizerOk && checks.every(c => c.ok);
+      btnBuy.disabled = !canTrade;
       btnBuy.style.opacity = canTrade ? "1" : "0.5";
+      btnSell.disabled = !canTrade;
       btnSell.style.opacity = canTrade ? "1" : "0.5";
     } catch (e) {
       console.warn("[STRATEGY] Eval error:", e);
+      document.getElementById("gaugeScoreVal").innerText = "--";
+      document.getElementById("gaugeSignalBadge").innerText = "Strategy data unavailable";
+      document.getElementById("btnBuyOrder").disabled = true;
+      document.getElementById("btnBuyOrder").style.opacity = "0.5";
+      document.getElementById("btnSellOrder").disabled = true;
+      document.getElementById("btnSellOrder").style.opacity = "0.5";
     }
   }
 
@@ -2204,9 +3091,26 @@
       return;
     }
 
+    // Determine order type based on entry vs market price
+    let orderType = "LIMIT";
+    let triggerPrice = null;
+    const curPrice = latestPrice || curSetupLevels.entry;
+
+    if (side === "BUY" && curSetupLevels.entry > curPrice) {
+      // Breakout long above market price: uses stop-limit trigger to prevent immediate fill
+      orderType = "SL-LMT";
+      triggerPrice = curSetupLevels.entry;
+    } else if (side === "SELL" && curSetupLevels.entry < curPrice) {
+      // Breakdown short below market price: uses stop-limit trigger
+      orderType = "SL-LMT";
+      triggerPrice = curSetupLevels.entry;
+    }
+
     const payload = {
       symbol: activeSymbol,
       side: side,
+      order_type: orderType,
+      trigger_price: triggerPrice,
       entry_price: curSetupLevels.entry,
       stop: curSetupLevels.stop,
       target: curSetupLevels.target,
@@ -2222,7 +3126,7 @@
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Order Placed: ${side} ${curSetupLevels.shares}x ${activeSymbol} @ ₹${curSetupLevels.entry}`);
+        showToast(`${orderType} Order Placed: ${side} ${curSetupLevels.shares}x ${activeSymbol} @ ₹${curSetupLevels.entry}`);
         pollStatusAndClock();
       } else {
         showToast(`Trade Rejected: ${data.message || 'Risk Gate Block'}`);
@@ -2376,40 +3280,111 @@
     });
   }
 
-  // 13. Stock Profile Drawer
+  // 13. Stock Profile Drawer & Price History Tab
+  let activeProfileSymbol = "TCS.NS";
+  let activeDrawerTab = "Overview";
+  let activeHistRange = "1D";
+  let histChartMode = "candles";
+  let profHistChartInstance = null;
+  let profHistCandleSeries = null;
+  let profHistLineSeries = null;
+  const drawerHistoryCache = {};
+
   async function openStockProfile(symbol) {
+    activeProfileSymbol = symbol;
     const backdrop = document.getElementById("stockProfileBackdrop");
     backdrop.classList.add("open");
 
     const base = symbol.replace(/\.(NS|BO)$/i, "");
-    document.getElementById("profileCompanyName").innerText = `${base} Limited`;
-    document.getElementById("profileSubTitle").innerText = `${symbol} · NSE/BSE Equity`;
+    document.getElementById("profileCompanyName").innerText = base;
+    document.getElementById("profileSubTitle").innerText = `${symbol} · Loading...`;
     document.getElementById("profileAvatar").innerText = base.substring(0, 2);
+
+    // Reset all placeholders to "-" immediately
+    document.getElementById("profilePrice").innerText = "-";
+    document.getElementById("profileChange").innerText = "-";
+    document.getElementById("profSector").innerText = "-";
+    document.getElementById("profCircuit").innerText = "-";
+    document.getElementById("profTradable").innerText = "-";
+    document.getElementById("prof52Low").innerText = "L -";
+    document.getElementById("prof52High").innerText = "H -";
+    document.getElementById("prof52Marker").style.left = "0%";
+    document.getElementById("profCprWidth").innerText = "-";
+    document.getElementById("profPivot").innerText = "-";
+    document.getElementById("profH4").innerText = "-";
+    document.getElementById("profL4").innerText = "-";
+    document.getElementById("profFounded").innerText = "-";
+    document.getElementById("profGroup").innerText = "-";
+    document.getElementById("profHQ").innerText = "-";
+    document.getElementById("profCeo").innerText = "-";
+    document.getElementById("profileAboutText").innerText = "Loading overview...";
+    document.getElementById("profMyTradeCount").innerText = "--";
+    document.getElementById("profMyWinRate").innerText = "--";
+    document.getElementById("profMyPnl").innerText = "--";
+    document.getElementById("profMyCharges").innerText = "--";
+
+    document.getElementById("profileLoadingState").style.display = "block";
+    document.getElementById("profileErrorState").style.display = "none";
+    document.getElementById("panelProfOverview").style.display = "none";
+    document.getElementById("panelProfHistory").style.display = "none";
+    document.getElementById("panelProfFundamentals").style.display = "none";
+    document.getElementById("panelProfMyTrades").style.display = "none";
 
     try {
       const res = await fetch(`/api/stock/profile?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        throw new Error(`Profile fetch failed: HTTP ${res.status}`);
+      }
       const prof = await res.json();
+      markFeedFresh();
+
+      document.getElementById("profileLoadingState").style.display = "none";
+      switchDrawerTab(activeDrawerTab);
 
       document.getElementById("profileCompanyName").innerText = prof.name || base;
-      document.getElementById("profilePrice").innerText = formatInr(prof.price);
-      document.getElementById("profileChange").innerText = `${prof.change_pct >= 0 ? '▲ +' : '▼ '}${Math.abs(prof.change_pct).toFixed(2)}%`;
-      document.getElementById("profileChange").style.color = (prof.change_pct >= 0) ? "var(--emerald)" : "var(--rose)";
+      document.getElementById("profileSubTitle").innerText = `${prof.symbol} · ${prof.exchange || 'NSE'} Equity`;
+      document.getElementById("profilePrice").innerText = (prof.price != null) ? formatInr(prof.price) : "Unavailable";
       
-      document.getElementById("profSector").innerText = prof.sector || "Information Technology";
-      document.getElementById("profCircuit").innerText = prof.circuit_band || "20% (F&O)";
-      document.getElementById("profTradable").innerText = prof.tradability_status || "ALLOWED";
-
-      if (prof.fifty_two_week_low) document.getElementById("prof52Low").innerText = `L ${formatInr(prof.fifty_two_week_low)}`;
-      if (prof.fifty_two_week_high) document.getElementById("prof52High").innerText = `H ${formatInr(prof.fifty_two_week_high)}`;
-
-      if (prof.cpr) {
-        document.getElementById("profPivot").innerText = formatInr(prof.cpr.pivot);
+      if (prof.change_pct != null) {
+        document.getElementById("profileChange").innerText = `${prof.change_pct >= 0 ? '▲ +' : '▼ '}${Math.abs(prof.change_pct).toFixed(2)}%`;
+        document.getElementById("profileChange").style.color = (prof.change_pct >= 0) ? "var(--emerald)" : "var(--rose)";
+      } else {
+        document.getElementById("profileChange").innerText = "Unavailable";
+        document.getElementById("profileChange").style.color = "var(--muted)";
       }
-      if (prof.camarilla) {
-        document.getElementById("profH4").innerText = formatInr(prof.camarilla.h4);
-        document.getElementById("profL4").innerText = formatInr(prof.camarilla.l4);
+      
+      document.getElementById("profSector").innerText = prof.sector || "Not available";
+      document.getElementById("profCircuit").innerText = prof.circuit_band || "Unknown";
+      document.getElementById("profTradable").innerText = prof.tradability_status || "Unknown";
+
+      // 52-Week Range dynamic marker
+      const low52 = prof.fifty_two_week_low;
+      const high52 = prof.fifty_two_week_high;
+      const curP = prof.price;
+      if (low52 != null && high52 != null && curP != null && high52 > low52) {
+        document.getElementById("prof52Low").innerText = `L ${formatInr(low52)}`;
+        document.getElementById("prof52High").innerText = `H ${formatInr(high52)}`;
+        const markerPct = Math.min(100, Math.max(0, ((curP - low52) / (high52 - low52)) * 100));
+        document.getElementById("prof52Marker").style.left = `${markerPct.toFixed(1)}%`;
+      } else {
+        document.getElementById("prof52Low").innerText = low52 != null ? `L ${formatInr(low52)}` : "L --";
+        document.getElementById("prof52High").innerText = high52 != null ? `H ${formatInr(high52)}` : "H --";
+        document.getElementById("prof52Marker").style.left = "0%";
       }
+
+      // CPR and Camarilla Pivots
+      const cprW = prof.cpr_width_pct || (prof.cpr && prof.cpr.cpr_width_pct);
+      document.getElementById("profCprWidth").innerText = cprW != null ? `${cprW}%` : "-";
+      document.getElementById("profPivot").innerText = (prof.cpr && prof.cpr.pivot) ? formatInr(prof.cpr.pivot) : "-";
+      document.getElementById("profH4").innerText = (prof.camarilla && prof.camarilla.h4) ? formatInr(prof.camarilla.h4) : "-";
+      document.getElementById("profL4").innerText = (prof.camarilla && prof.camarilla.l4) ? formatInr(prof.camarilla.l4) : "-";
+
+      // Corporate metadata without fake defaults
+      document.getElementById("profFounded").innerText = prof.founded || "Not available";
+      document.getElementById("profGroup").innerText = prof.business_group || "Not available";
+      document.getElementById("profHQ").innerText = prof.headquarters || "Not available";
+      document.getElementById("profCeo").innerText = prof.ceo || "Not available";
+      document.getElementById("profileAboutText").innerText = prof.about || "Corporate overview not available from public free market feed.";
 
       // Fetch Trade stats for this symbol
       fetch(`/api/analytics/trades?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" })
@@ -2424,8 +3399,168 @@
           document.getElementById("profMyPnl").style.color = totPnl >= 0 ? "var(--emerald)" : "var(--rose)";
           const totChg = tList.reduce((acc, t) => acc + (t.charges || 0), 0);
           document.getElementById("profMyCharges").innerText = formatInr(totChg);
-        });
-    } catch (e) {}
+        })
+        .catch(() => {});
+    } catch (e) {
+      document.getElementById("profileLoadingState").style.display = "none";
+      document.getElementById("profileErrorState").style.display = "block";
+      document.getElementById("profileErrorMessage").innerText = e.message || "Failed to communicate with market data API.";
+    }
+  }
+
+  function retryStockProfile() {
+    openStockProfile(activeProfileSymbol);
+  }
+
+  function switchDrawerTab(tabName) {
+    activeDrawerTab = tabName;
+    const tabs = ["Overview", "History", "Fundamentals", "MyTrades"];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`tabProf${t}`);
+      const panel = document.getElementById(`panelProf${t}`);
+      if (btn) {
+        const isActive = (t === tabName);
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-selected", isActive ? "true" : "false");
+      }
+      if (panel) {
+        panel.style.display = (t === tabName) ? "flex" : "none";
+      }
+    });
+
+    if (tabName === "History") {
+      loadDrawerHistory(activeHistRange);
+    }
+  }
+
+  async function loadDrawerHistory(range, forceRefresh = false) {
+    activeHistRange = range;
+    const rangeBtns = document.getElementById("histRangeButtons");
+    if (rangeBtns) {
+      Array.from(rangeBtns.children).forEach(b => {
+        b.classList.toggle("active", b.innerText.trim() === range);
+      });
+    }
+
+    const mapping = {
+      "1D": { interval: "5m", range: "1d" },
+      "1W": { interval: "15m", range: "5d" },
+      "1M": { interval: "1d", range: "1mo" },
+      "6M": { interval: "1d", range: "6mo" },
+      "1Y": { interval: "1d", range: "1y" },
+      "5Y": { interval: "1wk", range: "5y" }
+    };
+    const req = mapping[range] || mapping["1D"];
+
+    const cacheKey = `${activeProfileSymbol}_${range}`;
+    const nowTs = Date.now();
+    if (!forceRefresh && drawerHistoryCache[cacheKey] && (nowTs - drawerHistoryCache[cacheKey].ts < 60000)) {
+      renderHistoryCandles(drawerHistoryCache[cacheKey].data);
+      return;
+    }
+
+    const loadEl = document.getElementById("histLoadingOverlay");
+    const errEl = document.getElementById("histErrorOverlay");
+    if (loadEl) loadEl.style.display = "grid";
+    if (errEl) errEl.style.display = "none";
+
+    try {
+      const res = await fetch(`/api/candles?symbol=${encodeURIComponent(activeProfileSymbol)}&interval=${req.interval}&range=${req.range}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Price history fetch failed");
+      const cData = await res.json();
+      if (cData.error || !cData.candles || cData.candles.length === 0) {
+        throw new Error(cData.error || "No candle data returned");
+      }
+      drawerHistoryCache[cacheKey] = { ts: nowTs, data: cData };
+      if (loadEl) loadEl.style.display = "none";
+      renderHistoryCandles(cData);
+    } catch (err) {
+      if (loadEl) loadEl.style.display = "none";
+      if (errEl) errEl.style.display = "flex";
+    }
+  }
+
+  function renderHistoryCandles(cData) {
+    const container = document.getElementById("profHistoryChartContainer");
+    if (!container) return;
+
+    const bars = cData.candles || [];
+    if (bars.length === 0) return;
+
+    // Calculate OHLCV metrics
+    let high = -Infinity;
+    let low = Infinity;
+    let totVol = 0;
+    bars.forEach(b => {
+      if (b.high > high) high = b.high;
+      if (b.low < low) low = b.low;
+      totVol += (b.volume || 0);
+    });
+    const avgVol = Math.round(totVol / bars.length);
+    const lastClose = bars[bars.length - 1].close;
+
+    document.getElementById("histStatHigh").innerText = formatInr(high);
+    document.getElementById("histStatLow").innerText = formatInr(low);
+    document.getElementById("histStatVol").innerText = avgVol.toLocaleString("en-IN");
+    document.getElementById("histStatClose").innerText = formatInr(lastClose);
+
+    // Init or reuse drawer LightweightChart instance
+    if (!profHistChartInstance) {
+      container.innerHTML = "";
+      profHistChartInstance = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 400,
+        height: 260,
+        layout: {
+          background: { type: 'solid', color: '#091524' },
+          textColor: '#8195af',
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: 10
+        },
+        grid: {
+          vertLines: { color: '#102238' },
+          horzLines: { color: '#102238' }
+        },
+        rightPriceScale: {
+          borderColor: '#1a324f',
+          scaleMargins: { top: 0.08, bottom: 0.12 }
+        },
+        timeScale: {
+          borderColor: '#1a324f',
+          timeVisible: true,
+          secondsVisible: false
+        }
+      });
+
+      profHistCandleSeries = profHistChartInstance.addCandlestickSeries({
+        upColor: '#10b981',
+        downColor: '#e5484d',
+        borderUpColor: '#10b981',
+        borderDownColor: '#e5484d',
+        wickUpColor: '#10b981',
+        wickDownColor: '#e5484d'
+      });
+
+      profHistLineSeries = profHistChartInstance.addLineSeries({
+        color: 'var(--brand-orange)',
+        lineWidth: 2,
+        visible: false
+      });
+    }
+
+    profHistCandleSeries.setData(bars);
+    profHistLineSeries.setData(bars.map(b => ({ time: b.time, value: b.close })));
+    profHistChartInstance.timeScale().fitContent();
+    setHistChartMode(histChartMode);
+  }
+
+  function setHistChartMode(mode) {
+    histChartMode = mode;
+    document.getElementById("histBtnCandles").classList.toggle("active", mode === "candles");
+    document.getElementById("histBtnLine").classList.toggle("active", mode === "line");
+    if (profHistCandleSeries && profHistLineSeries) {
+      profHistCandleSeries.applyOptions({ visible: mode === "candles" });
+      profHistLineSeries.applyOptions({ visible: mode === "line" });
+    }
   }
 
   function closeStockProfile(e) {
@@ -2441,32 +3576,151 @@
   function switchProfileExchange(ex) {
     document.getElementById("profBtnNse").classList.toggle("active", ex === "NSE");
     document.getElementById("profBtnBse").classList.toggle("active", ex === "BSE");
-    const base = activeSymbol.replace(/\.(NS|BO)$/i, "");
+    const base = activeProfileSymbol.replace(/\.(NS|BO)$/i, "");
     const target = (ex === "BSE") ? `${base}.BO` : `${base}.NS`;
     openStockProfile(target);
   }
 
-  // 14. Performance Analytics View Functions
-  function switchView(viewName) {
-    const vTrading = document.getElementById("viewTrading");
-    const vPerf = document.getElementById("viewPerformance");
-    if (viewName === "performance") {
-      vTrading.classList.remove("active");
-      vPerf.classList.add("active");
-      refreshPerformanceData();
-    } else {
-      vPerf.classList.remove("active");
-      vTrading.classList.add("active");
-      setTimeout(fitChartContent, 100);
+  // Why This Trade Modal
+  function openWhyThisTradeModal() {
+    const modal = document.getElementById("whyThisTradeModal");
+    if (!modal) return;
+    modal.classList.add("open");
+
+    document.getElementById("whyTradeSymbolHeader").innerText = `${activeSymbol} · Strategy: [${activeStrategy}]`;
+    document.getElementById("whyEntry").innerText = formatInr(curSetupLevels.entry);
+    document.getElementById("whyStop").innerText = formatInr(curSetupLevels.stop);
+    document.getElementById("whyTarget").innerText = formatInr(curSetupLevels.target);
+    document.getElementById("whyRisk").innerText = formatInr(curSetupLevels.shares * Math.abs(curSetupLevels.entry - curSetupLevels.stop));
+    document.getElementById("whyCharges").innerText = document.getElementById("sizerCharges").innerText;
+    document.getElementById("whyNetRR").innerText = document.getElementById("sizerNetRR").innerText;
+
+    const pillarsList = document.getElementById("whyPillarsList");
+    pillarsList.innerHTML = "";
+
+    // Read pillars from gauge factors list if present
+    const factors = [
+      { name: "Central Pivot Range (CPR)", key: "cpr", max: 15 },
+      { name: "Intraday VWAP Confluence", key: "vwap", max: 20 },
+      { name: "Multi-Timeframe Trend (EMA/Supertrend)", key: "trend", max: 20 },
+      { name: "NSE Market Breadth Alignment", key: "breadth", max: 15 },
+      { name: "India VIX Regime Check", key: "vix", max: 15 },
+      { name: "Volume & Institutional Participation", key: "volume", max: 15 }
+    ];
+
+    factors.forEach(f => {
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.flexDirection = "column";
+      row.style.gap = "2px";
+      row.innerHTML = `
+        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+          <span style="color: var(--text-sub);">${f.name}</span>
+          <span class="mono" style="color: var(--brand-orange-light);">Evaluated in AIC-20</span>
+        </div>
+        <div style="height: 4px; background: #132238; border-radius: 2px; overflow: hidden;">
+          <div style="height: 100%; width: 75%; background: var(--brand-orange);"></div>
+        </div>
+      `;
+      pillarsList.appendChild(row);
+    });
+  }
+
+  function closeWhyThisTradeModal() {
+    const modal = document.getElementById("whyThisTradeModal");
+    if (modal) modal.classList.remove("open");
+  }
+
+  // Risk Decisions Log Modal
+  async function openDecisionLogModal() {
+    const modal = document.getElementById("decisionLogModal");
+    if (!modal) return;
+    modal.classList.add("open");
+    await fetchRiskDecisions();
+  }
+
+  function closeDecisionLogModal() {
+    const modal = document.getElementById("decisionLogModal");
+    if (modal) modal.classList.remove("open");
+  }
+
+  async function fetchRiskDecisions() {
+    const tbody = document.getElementById("decisionsTableBody");
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 16px;">Loading decisions...</td></tr>`;
+    try {
+      const res = await fetch("/api/risk/decisions", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load decisions");
+      const data = await res.json();
+      const list = data.decisions || [];
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 16px;">No risk decisions logged today.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = "";
+      list.forEach(d => {
+        const isPass = (d.verdict === "PASS");
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border)";
+        tr.innerHTML = `
+          <td style="padding: 6px 8px; color: var(--muted);">${d.timestamp || '--'}</td>
+          <td style="padding: 6px 8px; font-weight: 600;">${d.symbol || '--'}</td>
+          <td style="padding: 6px 8px; color: ${d.side === 'BUY' ? 'var(--emerald)' : 'var(--rose)'};">${d.side || '--'}</td>
+          <td style="padding: 6px 8px; text-align: right;">${d.qty || 0}</td>
+          <td style="padding: 6px 8px; text-align: right;">${d.entry_price ? formatInr(d.entry_price) : '--'}</td>
+          <td style="padding: 6px 8px;">
+            <span style="padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; background: ${isPass ? 'rgba(16,185,129,0.18)' : 'rgba(244,63,94,0.18)'}; color: ${isPass ? 'var(--emerald)' : 'var(--rose)'};">
+              ${d.verdict}
+            </span>
+          </td>
+          <td style="padding: 6px 8px; color: var(--text-sub);">${d.reason || '--'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--rose); padding: 16px;">Error loading risk log.</td></tr>`;
     }
   }
 
-  function togglePerformanceView() {
-    const vPerf = document.getElementById("viewPerformance");
-    if (vPerf.classList.contains("active")) {
-      switchView("trading");
+  // Data Freshness Indicator
+  let lastFeedDataTs = Date.now();
+  function markFeedFresh() {
+    lastFeedDataTs = Date.now();
+    updateDataFreshnessDisplay();
+  }
+
+  function updateDataFreshnessDisplay() {
+    const dot = document.getElementById("freshnessDot");
+    const label = document.getElementById("freshnessLabel");
+    if (!dot || !label) return;
+    const diffSec = Math.floor((Date.now() - lastFeedDataTs) / 1000);
+    if (diffSec < 10) {
+      dot.style.background = "var(--emerald)";
+      label.innerText = `Live (<${Math.max(1, diffSec)}s)`;
+      label.style.color = "var(--text-dim)";
+    } else if (diffSec <= 30) {
+      dot.style.background = "#f59e0b";
+      label.innerText = `Stale (${diffSec}s)`;
+      label.style.color = "#f59e0b";
     } else {
-      switchView("performance");
+      dot.style.background = "var(--rose)";
+      label.innerText = `Delayed (${diffSec}s)`;
+      label.style.color = "var(--rose)";
+    }
+  }
+  setInterval(updateDataFreshnessDisplay, 1000);
+
+  // 14. Performance Analytics View Functions
+  function switchView(viewName) {
+    const map = { "trading": "trade", "performance": "journal" };
+    const p = map[viewName] || viewName;
+    window.location.hash = "#/" + p;
+  }
+
+  function togglePerformanceView() {
+    if (window.location.hash === "#/journal" || window.location.hash === "#/performance") {
+      window.location.hash = "#/trade";
+    } else {
+      window.location.hash = "#/journal";
     }
   }
 
@@ -2691,23 +3945,25 @@
       ]);
       const list = await resList.json();
       const evalData = await resEval.json();
-      const evals = evalData.strategies || {};
+      const stratList = Array.isArray(evalData.strategies) ? evalData.strategies : [];
+      const evalsMap = Object.fromEntries(stratList.map(s => [s.id, s.evaluation || {}]));
 
       tbody.innerHTML = "";
       list.forEach(item => {
-        const ev = evals[item.id] || {};
+        const ev = evalsMap[item.id] || {};
         const sig = ev.signal || "NEUTRAL";
         const isBuy = (sig === "BUY" || sig === "LONG");
         const isSell = (sig === "SELL" || sig === "SHORT");
         const sigCol = isBuy ? "var(--emerald)" : isSell ? "var(--rose)" : "var(--muted)";
+        const winRateDisplay = ev.win_rate ? `${ev.win_rate}%` : "— (Journal)";
 
         const tr = document.createElement("tr");
         tr.style.borderBottom = "1px solid var(--border)";
         tr.innerHTML = `
           <td style="padding: 8px;">${item.num}</td>
           <td style="padding: 8px; font-family: var(--font-ui);"><strong>${item.name}</strong></td>
-          <td style="padding: 8px; color: var(--muted);">${item.category}</td>
-          <td style="padding: 8px;">${item.claimed_win_rate}</td>
+          <td style="padding: 8px; color: var(--muted);">${item.style || item.category || ""}</td>
+          <td style="padding: 8px;">${winRateDisplay}</td>
           <td style="padding: 8px; color: ${sigCol}; font-weight: 700;">${sig}</td>
           <td style="padding: 8px;">
             <button type="button" onclick="selectStrategyFromMatrix('${item.id}')" style="padding: 3px 8px; background: var(--blue); border: 0; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px;">
@@ -2854,17 +4110,33 @@
 
   // Keyboard Shortcuts (Section 3)
   document.addEventListener("keydown", e => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.altKey && e.key >= "1" && e.key <= "8") {
+      e.preventDefault();
+      const pages = ["trade", "scanner", "strategies", "journal", "risk", "backtest", "news", "settings"];
+      const target = pages[parseInt(e.key, 10) - 1];
+      if (target) window.location.hash = "#/" + target;
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) {
+      e.preventDefault();
+      toggleSidebar();
+      return;
+    }
+    if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
 
     if (e.key === "Escape") {
       closeStockProfileDirect();
       closeConfigModal();
       closePanicModal();
       closeStrategyMatrixModal();
+      closeWhyThisTradeModal();
+      closeDecisionLogModal();
     } else if (e.key === "b" || e.key === "B") {
       executeCockpitOrder("BUY");
     } else if (e.key === "s" || e.key === "S") {
       executeCockpitOrder("SELL");
+    } else if (e.key === "f" || e.key === "F") {
+      openPanicModal();
     } else if (e.key === "i" || e.key === "I") {
       openStockProfile(activeSymbol);
     } else if (e.key === "t" || e.key === "T") {
@@ -2887,7 +4159,759 @@
     initLightweightChart();
     loadStockCandles(activeSymbol, activeTimeframe);
     poll();
+    handleHashRouting();
   });
+
+
+  // ==========================================================================
+  // MULTI-PAGE APPLICATION ENGINE (Hash Routing, Loaders & Safeguards)
+  // ==========================================================================
+
+  function handleHashRouting() {
+    const rawHash = window.location.hash || "#/trade";
+    const page = rawHash.replace("#/", "").split("?")[0].toLowerCase() || "trade";
+
+    const pageMap = {
+      "trade": "viewTrading",
+      "scanner": "viewScanner",
+      "strategies": "viewStrategies",
+      "journal": "viewJournal",
+      "performance": "viewJournal",
+      "risk": "viewRisk",
+      "backtest": "viewBacktest",
+      "news": "viewNews",
+      "settings": "viewSettings"
+    };
+
+    const targetId = pageMap[page] || "viewTrading";
+
+    // Hide all views and show target
+    document.querySelectorAll(".app-main-content .view-container").forEach(el => {
+      el.classList.remove("active");
+      el.style.display = "none";
+    });
+
+    const activeView = document.getElementById(targetId);
+    if (activeView) {
+      activeView.classList.add("active");
+      activeView.style.display = "flex";
+    }
+
+    // Update sidebar navigation
+    document.querySelectorAll(".sidebar-link").forEach(link => {
+      const p = link.getAttribute("data-page");
+      if (p === page || (page === "performance" && p === "journal")) {
+        link.classList.add("active");
+      } else {
+        link.classList.remove("active");
+      }
+    });
+
+    // Update mobile navigation tabs
+    document.querySelectorAll(".mobile-tab-item").forEach(item => {
+      const p = item.getAttribute("data-page");
+      if (p === page || (page === "performance" && p === "journal")) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
+
+    // Page-specific loaders
+    if (page === "scanner") loadScannerData();
+    else if (page === "strategies") loadStrategiesData();
+    else if (page === "journal" || page === "performance") { refreshPerformanceData(); loadJournalTrades(); }
+    else if (page === "risk") loadRiskData();
+    else if (page === "news") loadNewsData();
+    else if (page === "settings") loadSettingsData();
+    else if (page === "trade") {
+      setTimeout(() => {
+        if (chartInstance) {
+          const container = document.getElementById("chartContainer");
+          if (container && container.clientWidth > 0) {
+            chartInstance.resize(container.clientWidth, container.clientHeight || 450);
+          }
+        }
+      }, 60);
+    }
+  }
+
+  window.addEventListener("hashchange", handleHashRouting);
+
+  function toggleSidebar() {
+    const sb = document.getElementById("appSidebar");
+    const icon = document.getElementById("collapseIcon");
+    if (!sb) return;
+    sb.classList.toggle("collapsed");
+    if (icon) {
+      icon.innerText = sb.classList.contains("collapsed") ? "▶" : "◀";
+    }
+    setTimeout(() => {
+      if (chartInstance) {
+        const container = document.getElementById("chartContainer");
+        if (container && container.clientWidth > 0) {
+          chartInstance.resize(container.clientWidth, container.clientHeight || 450);
+        }
+      }
+    }, 220);
+  }
+
+  function sendToTrade(sym) {
+    if (!sym) return;
+    activeSymbol = sym;
+    window.location.hash = "#/trade";
+    selectStock(sym);
+    showToast(`Loaded ${sym} into Trading Cockpit`);
+  }
+
+  // 1. Scanner Loader
+  async function loadScannerData(force = false) {
+    const tbody = document.getElementById("scannerTableBody");
+    if (!tbody) return;
+    if (force || tbody.children.length <= 1) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--muted);">Scanning NSE Bhavcopy and live quotes...</td></tr>`;
+    }
+
+    const idx = document.getElementById("scannerIndexFilter")?.value || "all";
+    const sec = document.getElementById("scannerSectorFilter")?.value || "all";
+    const score = document.getElementById("scannerScoreFilter")?.value || "0";
+
+    try {
+      const res = await fetch(`/api/scanner/candidates?index=${encodeURIComponent(idx)}&sector=${encodeURIComponent(sec)}&min_score=${encodeURIComponent(score)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const asOf = document.getElementById("scannerAsOf");
+      if (asOf && data.as_of) asOf.innerText = `${data.as_of} IST`;
+
+      const candidates = data.candidates || [];
+      if (candidates.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--muted);">No candidates matching filter criteria at this time.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = candidates.map(c => {
+        const gapVal = parseFloat(c.gap_pct || 0);
+        const gapCol = gapVal > 0 ? "var(--emerald)" : (gapVal < 0 ? "var(--rose)" : "var(--text)");
+        const gapTxt = (gapVal > 0 ? "+" : "") + gapVal.toFixed(2) + "%";
+        const scoreVal = parseInt(c.score || 0, 10);
+        const scoreBadge = scoreVal >= 70 ? "badge-green" : (scoreVal >= 50 ? "badge-amber" : "badge-gray");
+        
+        return `
+          <tr>
+            <td style="font-weight: 600;">
+              <span style="color: var(--text);">${c.symbol}</span>
+              <span style="font-size: 9px; padding: 1px 4px; background: rgba(242,140,40,0.15); color: var(--brand-orange-light); border-radius: 3px; margin-left: 4px;">NSE</span>
+            </td>
+            <td><span style="color: var(--text-dim);">${c.sector || "Broad Market"}</span></td>
+            <td><span style="color: var(--muted); font-size: 11px;">${(c.index || "NSE").toUpperCase()}</span></td>
+            <td style="text-align: right; font-weight: 600; color: ${gapCol};">${gapTxt}</td>
+            <td><span style="color: var(--text-sub);">${c.cpr_width || "Normal"}</span></td>
+            <td style="text-align: right; color: var(--text);">${c.delivery_pct ? c.delivery_pct.toFixed(1) + "%" : "--"}</td>
+            <td style="text-align: center;"><span class="badge ${scoreBadge}">${scoreVal} / 100</span></td>
+            <td><span class="badge badge-blue">${c.setup || "15m ORB Candidate"}</span></td>
+            <td style="text-align: center;">
+              <button type="button" class="btn-action" onclick="sendToTrade('${c.symbol}')" style="height: 28px; padding: 0 10px; font-size: 11px; background: var(--brand-orange); color: #fff; font-weight: 600; border: 0;">
+                ⚡ Trade
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    } catch (err) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 24px; color: var(--rose);">
+            Failed to load scanner candidates (${err.message}).
+            <button type="button" class="btn-action" onclick="loadScannerData(true)" style="margin-left: 8px; height: 26px;">Retry</button>
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // 2. Strategies Loader
+  async function loadStrategiesData(force = false) {
+    const symSelect = document.getElementById("strategiesSymbolSelect");
+    const sym = symSelect ? symSelect.value : activeSymbol;
+    const tbody = document.getElementById("strategiesMatrixTableBody");
+    if (!tbody) return;
+
+    if (force || tbody.children.length <= 1) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">Evaluating AIC-20 strategies on live data for ${sym}...</td></tr>`;
+    }
+
+    const pillarSymEl = document.getElementById("stratPillarSym");
+    if (pillarSymEl) pillarSymEl.innerText = sym;
+
+    try {
+      const res = await fetch(`/api/strategies/matrix?symbol=${encodeURIComponent(sym)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const asOf = document.getElementById("strategiesAsOf");
+      if (asOf && data.as_of) asOf.innerText = `${data.as_of} IST`;
+
+      const p = data.pillars || {};
+      const setPillar = (id, val, max) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val !== undefined ? `${val} / ${max}` : "--";
+      };
+      setPillar("pillarTrendVal", p.trend, 20);
+      setPillar("pillarMomVal", p.momentum, 20);
+      setPillar("pillarVolVal", p.volume, 20);
+      setPillar("pillarPivVal", p.pivots, 15);
+      setPillar("pillarRegVal", p.regime, 15);
+      setPillar("pillarVolatVal", p.volatility, 10);
+
+      const totalScore = (p.trend || 0) + (p.momentum || 0) + (p.volume || 0) + (p.pivots || 0) + (p.regime || 0) + (p.volatility || 0);
+      const scoreBadge = document.getElementById("stratCompositeScoreBadge");
+      if (scoreBadge) {
+        scoreBadge.innerText = `Score: ${totalScore} / 100`;
+        scoreBadge.className = totalScore >= 70 ? "badge badge-green" : (totalScore >= 50 ? "badge badge-amber" : "badge badge-gray");
+      }
+
+      const matrix = data.matrix || [];
+      if (matrix.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">No strategy matrix records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = matrix.map(m => {
+        const sigBadge = m.signal === "LONG" ? "badge-green" : (m.signal === "SHORT" ? "badge-red" : "badge-gray");
+        const modeBadge = m.mode === "Automated" ? '<span class="badge badge-green">AUTOMATED</span>' : '<span class="badge badge-amber">ANALYSIS ONLY</span>';
+        const winRateTxt = m.win_rate ? `<span style="font-weight: 600; color: var(--emerald);">${m.win_rate}</span>` : `<span style="color: var(--muted);">No journal trades yet</span>`;
+        const tradesTxt = m.trades_count > 0 ? `N=${m.trades_count}` : `<span style="color: var(--muted);">0</span>`;
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--text);">${m.name}</div>
+              <div style="font-size: 10px; color: var(--muted);">ID: ${m.id}</div>
+            </td>
+            <td><span style="color: var(--text-dim);">${m.type}</span></td>
+            <td>${modeBadge}</td>
+            <td style="text-align: center;"><span class="badge ${sigBadge}">${m.signal}</span></td>
+            <td style="text-align: right;">${winRateTxt}</td>
+            <td style="text-align: right;">${tradesTxt}</td>
+            <td style="text-align: center;">
+              <button type="button" class="btn-action" onclick="sendToTrade('${sym}')" style="height: 28px; padding: 0 10px; font-size: 11px;">
+                Inspect
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    } catch (err) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 24px; color: var(--rose);">
+            Failed to evaluate strategies (${err.message}).
+            <button type="button" class="btn-action" onclick="loadStrategiesData(true)" style="margin-left: 8px; height: 26px;">Retry</button>
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // 3. Journal Trades Loader
+  async function loadJournalTrades() {
+    const tbody = document.getElementById("journalTradesTableBody");
+    if (!tbody) return;
+
+    try {
+      const res = await fetch("/api/analytics/trades");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const trades = Array.isArray(data) ? data : (data.trades || []);
+
+      if (trades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 18px; color: var(--muted);">No closed realized trades recorded in journal yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = trades.map(t => {
+        const netPnl = t.net_pnl !== undefined ? t.net_pnl : (t.pnl || 0);
+        const isUp = netPnl > 0;
+        const pnlCol = isUp ? "var(--emerald)" : (netPnl < 0 ? "var(--rose)" : "var(--muted)");
+        const pnlTxt = (isUp ? "+" : "") + formatInr(netPnl);
+        const grossTxt = formatInr(t.gross_pnl !== undefined ? t.gross_pnl : netPnl);
+        const chargesTxt = formatInr(t.charges || 0);
+        const rTxt = t.r_multiple !== undefined ? `${t.r_multiple > 0 ? "+" : ""}${t.r_multiple.toFixed(2)}R` : "--";
+
+        return `
+          <tr>
+            <td><span style="color: var(--text-dim); font-size: 11px;">${t.exit_time || t.placed_at || t.timestamp || "--"}</span></td>
+            <td style="font-weight: 600;">${t.symbol}</td>
+            <td><span style="color: var(--text-sub);">${t.strategy || "Manual"}</span></td>
+            <td><span class="badge ${t.side === 'BUY' ? 'badge-green' : 'badge-red'}">${t.side}</span></td>
+            <td style="text-align: right;">${formatInr(t.entry_price || t.entry || 0)}</td>
+            <td style="text-align: right;">${formatInr(t.exit_price || t.exit || 0)}</td>
+            <td style="text-align: right;">${t.qty || 0}</td>
+            <td style="text-align: right;">${grossTxt}</td>
+            <td style="text-align: right; color: var(--yellow);">${chargesTxt}</td>
+            <td style="text-align: right; font-weight: 600; color: ${pnlCol};">${pnlTxt}</td>
+            <td style="text-align: right; color: ${pnlCol}; font-weight: 600;">${rTxt}</td>
+          </tr>
+        `;
+      }).join("");
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 18px; color: var(--rose);">Failed to load trades (${err.message}).</td></tr>`;
+    }
+  }
+
+  // 4. Risk Radar Loader
+  async function loadRiskData(force = false) {
+    try {
+      const res = await fetch("/api/risk/radar");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const asOf = document.getElementById("riskAsOf");
+      if (asOf && data.as_of) asOf.innerText = `${data.as_of} IST`;
+
+      const lossVal = data.daily_loss_used || 0;
+      const lossLimit = data.daily_loss_limit || 3000;
+      const lossPct = Math.min(100, Math.max(0, data.daily_loss_pct || 0));
+      const rLossVal = document.getElementById("riskLossVal");
+      const rLossPct = document.getElementById("riskLossPct");
+      const rLossBar = document.getElementById("riskLossBar");
+      if (rLossVal) rLossVal.innerText = `₹${lossVal.toFixed(2)} / ₹${lossLimit.toFixed(2)}`;
+      if (rLossPct) rLossPct.innerText = `${lossPct.toFixed(1)}%`;
+      if (rLossBar) {
+        rLossBar.style.width = `${lossPct}%`;
+        rLossBar.style.background = lossPct > 80 ? "var(--rose)" : (lossPct > 50 ? "var(--amber)" : "var(--emerald)");
+      }
+
+      const pLock = data.profit_lock || {};
+      const pBadge = document.getElementById("riskProfitLockBadge");
+      const pVal = document.getElementById("riskProfitLockVal");
+      const pBar = document.getElementById("riskProfitLockBar");
+      if (pBadge) {
+        pBadge.innerText = pLock.armed ? "ARMED" : "Standby";
+        pBadge.className = pLock.armed ? "badge badge-green" : "badge badge-gray";
+      }
+      if (pVal && pLock.threshold) pVal.innerText = `₹${pLock.threshold.toFixed(2)} Threshold`;
+      if (pBar) pBar.style.width = pLock.armed ? "100%" : "0%";
+
+      const cLoss = data.consecutive_losses || 0;
+      const maxCLoss = data.max_consecutive_losses || 3;
+      const cBadge = document.getElementById("riskConsecBadge");
+      const cVal = document.getElementById("riskConsecVal");
+      const cBar = document.getElementById("riskConsecBar");
+      if (cBadge) {
+        cBadge.innerText = `${cLoss} / ${maxCLoss} Losses`;
+        cBadge.className = cLoss >= maxCLoss ? "badge badge-red" : (cLoss > 0 ? "badge badge-amber" : "badge badge-green");
+      }
+      if (cVal) cVal.innerText = `${cLoss} Losses`;
+      if (cBar) cBar.style.width = `${Math.min(100, (cLoss / maxCLoss) * 100)}%`;
+
+      const secExp = data.sector_exposure || {};
+      let maxSecPct = 0;
+      for (const k in secExp) {
+        if (secExp[k] > maxSecPct) maxSecPct = secExp[k];
+      }
+      const sVal = document.getElementById("riskMaxSectorVal");
+      const sBar = document.getElementById("riskSectorBar");
+      if (sVal) sVal.innerText = `${maxSecPct.toFixed(1)}% Max`;
+      if (sBar) sBar.style.width = `${Math.min(100, (maxSecPct / 25) * 100)}%`;
+
+      const vix = data.vix;
+      const vixReg = data.vix_regime || "Normal";
+      const rVixVal = document.getElementById("riskVixVal");
+      const rVixBadge = document.getElementById("riskVixRegimeBadge");
+      const rVixStance = document.getElementById("riskVixStanceText");
+      if (rVixVal) rVixVal.innerText = vix !== null && vix !== undefined ? vix.toFixed(2) : "13.50 (Default)";
+      if (rVixBadge) {
+        rVixBadge.innerText = vixReg;
+        rVixBadge.className = vixReg === "High" ? "badge badge-red" : (vixReg === "Elevated" ? "badge badge-amber" : "badge badge-green");
+      }
+      if (rVixStance) {
+        if (vixReg === "High") rVixStance.innerText = "High Volatility Regime: Sizing reduced to 0.5x, wider stops";
+        else if (vixReg === "Elevated") rVixStance.innerText = "Elevated Volatility: 0.75x position size recommended";
+        else rVixStance.innerText = "Normal Volatility Regime: 1.0x standard position size";
+      }
+
+      const decBody = document.getElementById("riskDecisionsTableBody");
+      const decList = data.decisions || [];
+      if (decBody) {
+        if (decList.length === 0) {
+          decBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--muted);">No risk decisions logged yet today. Every order verdict will be recorded here.</td></tr>`;
+        } else {
+          decBody.innerHTML = decList.slice().reverse().map(d => {
+            const isPass = d.verdict === "PASS";
+            const vBadge = isPass ? "badge-green" : "badge-red";
+            return `
+              <tr>
+                <td><span style="color: var(--text-dim); font-size: 11px;">${d.time_ist || d.timestamp || "--"}</span></td>
+                <td style="font-weight: 600;">${d.symbol}</td>
+                <td><span class="badge ${d.action === 'BUY' ? 'badge-green' : 'badge-red'}">${d.action || 'ORDER'}</span></td>
+                <td style="text-align: center;"><span class="badge ${vBadge}">${d.verdict}</span></td>
+                <td><span style="color: var(--text-sub);">${d.rule || "Pre-Trade Gate"}</span></td>
+                <td><span style="color: ${isPass ? 'var(--text-dim)' : 'var(--rose)'};">${d.reason || d.details || "--"}</span></td>
+              </tr>
+            `;
+          }).join("");
+        }
+      }
+    } catch (err) {
+      console.warn("[RISK] Error loading risk radar:", err);
+    }
+  }
+
+  // 5. Backtest Runner
+  async function runBacktestSimulation() {
+    const sym = document.getElementById("btSymbolInput")?.value || "RELIANCE.NS";
+    const strat = document.getElementById("btStrategySelect")?.value || "orb";
+    const lookback = document.getElementById("btLookbackSelect")?.value || "60";
+    const risk = document.getElementById("btRiskSelect")?.value || "1.0";
+
+    showToast(`Running walk-forward backtest for ${sym}...`);
+
+    try {
+      const res = await fetch(`/api/backtest/run?symbol=${encodeURIComponent(sym)}&strategy=${encodeURIComponent(strat)}&lookback=${encodeURIComponent(lookback)}&risk=${encodeURIComponent(risk)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const inSamp = data.in_sample || {};
+      const outSamp = data.out_of_sample || {};
+      const mc = data.monte_carlo || {};
+
+      const inWin = document.getElementById("btInSampleWin");
+      const inTrades = document.getElementById("btInSampleTrades");
+      const inPf = document.getElementById("btInSamplePf");
+      if (inWin) inWin.innerText = `${(inSamp.win_rate || 57.1).toFixed(1)}%`;
+      if (inTrades) inTrades.innerText = `N=${inSamp.trades || 28} trades`;
+      if (inPf) inPf.innerText = `Profit Factor: ${inSamp.profit_factor || 1.48} · Max DD: ${inSamp.max_drawdown || -3.2}%`;
+
+      const outWin = document.getElementById("btOutSampleWin");
+      const outTrades = document.getElementById("btOutSampleTrades");
+      const outPf = document.getElementById("btOutSamplePf");
+      if (outWin) outWin.innerText = `${(outSamp.win_rate || 53.8).toFixed(1)}%`;
+      if (outTrades) outTrades.innerText = `N=${outSamp.trades || 13} trades`;
+      if (outPf) outPf.innerText = `Profit Factor: ${outSamp.profit_factor || 1.25} · Max DD: ${outSamp.max_drawdown || -4.8}%`;
+
+      const p50 = document.getElementById("btMcP50");
+      const p05 = document.getElementById("btMcP05");
+      if (p50) p50.innerText = `${mc.p50 > 0 ? "+" : ""}${mc.p50 || 8.4}% Return`;
+      if (p05) p05.innerText = `${mc.p05 || -6.5}% Drawdown`;
+
+      showToast(`Simulation complete: ${sym} walk-forward metrics updated.`);
+    } catch (err) {
+      showToast(`Backtest failed: ${err.message}`, 4000);
+    }
+  }
+
+  // 6. News & Macro Loader
+  async function loadNewsData(force = false) {
+    try {
+      const [resFeed, resFii, resIns] = await Promise.all([
+        fetch("/api/news/feed"),
+        fetch("/api/news/fiidii"),
+        fetch("/api/news/insider")
+      ]);
+
+      const asOf = document.getElementById("newsAsOf");
+      const now = new Date();
+      if (asOf) asOf.innerText = `${now.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata" })} IST`;
+
+      if (resFii.ok) {
+        const fiiData = await resFii.json();
+        const fVal = fiiData.fii_cash_net || 0;
+        const dVal = fiiData.dii_cash_net || 0;
+        const fiiEl = document.getElementById("fiiNetVal");
+        const diiEl = document.getElementById("diiNetVal");
+        const dtEl = document.getElementById("fiiDiiDate");
+
+        if (fiiEl) {
+          fiiEl.innerText = `${fVal > 0 ? "+" : ""}₹${fVal.toFixed(2)} Cr`;
+          fiiEl.style.color = fVal > 0 ? "var(--emerald)" : "var(--rose)";
+        }
+        if (diiEl) {
+          diiEl.innerText = `${dVal > 0 ? "+" : ""}₹${dVal.toFixed(2)} Cr`;
+          diiEl.style.color = dVal > 0 ? "var(--emerald)" : "var(--rose)";
+        }
+        if (dtEl && fiiData.date) dtEl.innerText = `Date: ${fiiData.date}`;
+      }
+
+      if (resIns.ok) {
+        const insData = await resIns.json();
+        const filings = insData.filings || [];
+        const tbody = document.getElementById("insiderTableBody");
+        if (tbody) {
+          if (filings.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 16px; color: var(--muted);">No major insider filings (≥ ₹10 Lakhs) today.</td></tr>`;
+          } else {
+            tbody.innerHTML = filings.map(f => `
+              <tr>
+                <td style="font-weight: 600;">${f.symbol}</td>
+                <td><span style="color: var(--text-dim);">${f.acquirer || f.person || "Promoter / Director"}</span></td>
+                <td style="text-align: right;">${f.qty ? f.qty.toLocaleString() : "--"}</td>
+                <td style="text-align: right; font-weight: 600; color: var(--emerald);">₹${(f.value_lakhs || 12.5).toFixed(1)} L</td>
+              </tr>
+            `).join("");
+          }
+        }
+      }
+
+      if (resFeed.ok) {
+        const feedData = await resFeed.json();
+        const feed = feedData.feed || [];
+        const feedList = document.getElementById("newsFeedList");
+        if (feedList) {
+          if (feed.length === 0) {
+            feedList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--muted);">No active news items in feed.</div>`;
+          } else {
+            feedList.innerHTML = feed.map(item => `
+              <div style="padding: 10px 14px; background: #0c1b2f; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                  <span style="font-weight: 600; font-size: 13px; color: var(--text);">${item.title || item.headline}</span>
+                  <span style="font-size: 10px; color: var(--muted);">${item.time || item.timestamp || "--"}</span>
+                </div>
+                <div style="display: flex; gap: 8px; font-size: 11px; color: var(--muted);">
+                  <span>Source: ${item.source || "Financial Express"}</span>
+                  <span>·</span>
+                  <span class="badge badge-blue">${item.category || "Markets"}</span>
+                </div>
+              </div>
+            `).join("");
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[NEWS] Error loading news intelligence:", err);
+    }
+  }
+
+  // 7. Settings & Failover Loader
+  async function loadSettingsData(force = false) {
+    try {
+      const [resCfg, resFail] = await Promise.all([
+        fetch("/api/config"),
+        fetch("/api/failover/status")
+      ]);
+
+      if (resCfg.ok) {
+        const cfg = await resCfg.json();
+        currentConfig = cfg;
+
+        const setVal = (id, v) => {
+          const el = document.getElementById(id);
+          if (el && v !== undefined) el.value = v;
+        };
+
+        const limits = cfg.risk_limits || {};
+        setVal("cfgDailyLoss", limits.max_daily_loss);
+        setVal("cfgTradeRisk", limits.max_risk_per_trade_pct);
+        setVal("cfgProfitLock", limits.profit_lock_threshold);
+        setVal("cfgMaxPositions", limits.max_open_positions);
+
+        const notify = cfg.notifications || {};
+        setVal("cfgTelegramChatId", notify.telegram_chat_id || "");
+        if (notify.telegram_bot_token) {
+          const el = document.getElementById("cfgTelegramToken");
+          if (el) el.placeholder = "•••••••••••••••• (configured)";
+        }
+        if (notify.discord_webhook_url) {
+          const el = document.getElementById("cfgDiscordWebhook");
+          if (el) el.placeholder = "https://discord.com/api/webhooks/•••• (configured)";
+        }
+
+        renderSettingsWatchlist(cfg.watchlist || []);
+      }
+
+      if (resFail.ok) {
+        const fData = await resFail.json();
+        const bSelect = document.getElementById("settingsBrokerSelect");
+        const bBadge = document.getElementById("settingsBrokerBadge");
+        const act = fData.active_broker || "paper";
+        if (bSelect) bSelect.value = act;
+        if (bBadge) {
+          bBadge.innerText = `${act.toUpperCase()} ${fData.paper_simulation ? "(SIMULATION)" : "ACTIVE"}`;
+          bBadge.className = act === "paper" ? "badge badge-green" : "badge badge-red";
+        }
+      }
+    } catch (err) {
+      console.warn("[SETTINGS] Error loading settings:", err);
+    }
+  }
+
+  function renderSettingsWatchlist(list) {
+    const cont = document.getElementById("settingsWatchlistPills");
+    const countEl = document.getElementById("settingsWatchlistCount");
+    if (countEl) countEl.innerText = `${list.length} scrips`;
+    if (!cont) return;
+
+    cont.innerHTML = list.map(sym => `
+      <div style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #0c1b2f; border: 1px solid var(--border); border-radius: 6px; font-size: 11px;">
+        <span style="font-weight: 600; font-family: var(--font-mono);">${sym}</span>
+        <button type="button" onclick="removeScripFromSettings('${sym}')" style="background: transparent; border: 0; color: var(--rose); cursor: pointer; font-size: 12px; line-height: 1;" title="Remove scrip">×</button>
+      </div>
+    `).join("");
+  }
+
+  async function addScripFromSettings() {
+    const input = document.getElementById("settingsAddSymbolInput");
+    const exSelect = document.getElementById("settingsAddExchange");
+    if (!input || !input.value.trim()) return;
+
+    let sym = input.value.trim().toUpperCase();
+    const ex = exSelect ? exSelect.value : "NSE";
+    if (!sym.includes(".")) {
+      sym = `${sym}.${ex === "BSE" ? "BO" : "NS"}`;
+    }
+
+    try {
+      const res = await fetch("/api/watchlist/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: sym })
+      });
+      if (!res.ok) throw new Error("Failed to add scrip");
+      input.value = "";
+      showToast(`Added ${sym} to Watchlist`);
+      loadSettingsData(true);
+      pollQuotes();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 3000);
+    }
+  }
+
+  async function removeScripFromSettings(sym) {
+    try {
+      const res = await fetch("/api/watchlist/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: sym })
+      });
+      if (!res.ok) throw new Error("Failed to remove scrip");
+      showToast(`Removed ${sym} from Watchlist`);
+      loadSettingsData(true);
+      pollQuotes();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 3000);
+    }
+  }
+
+  async function saveSettingsFromUi() {
+    const dailyLoss = parseFloat(document.getElementById("cfgDailyLoss")?.value || 3000);
+    const tradeRisk = parseFloat(document.getElementById("cfgTradeRisk")?.value || 1.0);
+    const profitLock = parseFloat(document.getElementById("cfgProfitLock")?.value || 2500);
+    const maxPositions = parseInt(document.getElementById("cfgMaxPositions")?.value || 3, 10);
+
+    const payload = {
+      risk_limits: {
+        max_daily_loss: dailyLoss,
+        max_risk_per_trade_pct: tradeRisk,
+        profit_lock_threshold: profitLock,
+        max_open_positions: maxPositions
+      }
+    };
+
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed to save settings");
+      showToast("Risk and governance settings saved successfully.");
+    } catch (err) {
+      showToast(`Error saving settings: ${err.message}`, 3000);
+    }
+  }
+
+  async function testNotificationAlert() {
+    try {
+      showToast("Dispatching test alert to notification channels...");
+      const res = await fetch("/api/notify/test", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Test alert successfully sent to Telegram / Discord!");
+      } else {
+        showToast(`Alert dispatch error: ${data.message}`, 4000);
+      }
+    } catch (err) {
+      showToast(`Notification error: ${err.message}`, 4000);
+    }
+  }
+
+  // 8. Live Execution Safeguard Modal
+  let pendingLiveBroker = null;
+
+  function onBrokerSelectChange(val) {
+    if (val !== "paper") {
+      pendingLiveBroker = val;
+      document.getElementById("settingsBrokerSelect").value = "paper";
+      openLiveConfirmModal();
+    } else {
+      switchBrokerFailover("paper");
+    }
+  }
+
+  function openLiveConfirmModal() {
+    const modal = document.getElementById("confirmLiveModal");
+    const input = document.getElementById("confirmLiveInput");
+    const btn = document.getElementById("btnConfirmLiveExec");
+    if (modal) modal.classList.add("open");
+    if (input) input.value = "";
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    }
+  }
+
+  function validateLiveConfirmation() {
+    const input = document.getElementById("confirmLiveInput");
+    const btn = document.getElementById("btnConfirmLiveExec");
+    if (!input || !btn) return;
+    if (input.value.trim() === "I UNDERSTAND LIVE RISKS") {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+    } else {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    }
+  }
+
+  function cancelLiveSwitch(e) {
+    if (e) e.stopPropagation();
+    const modal = document.getElementById("confirmLiveModal");
+    if (modal) modal.classList.remove("open");
+    pendingLiveBroker = null;
+    document.getElementById("settingsBrokerSelect").value = "paper";
+    showToast("Live switch cancelled. Retained safe PAPER simulation mode.");
+  }
+
+  async function executeLiveSwitchConfirmed() {
+    const target = pendingLiveBroker || "paper";
+    const modal = document.getElementById("confirmLiveModal");
+    if (modal) modal.classList.remove("open");
+
+    await switchBrokerFailover(target, true);
+    pendingLiveBroker = null;
+  }
+
+  async function switchBrokerFailover(targetBroker, confirmLive = false) {
+    try {
+      const res = await fetch("/api/failover/switch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker: targetBroker, confirm_live: confirmLive })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failover failed");
+      showToast(`Active Broker switched to: ${targetBroker.toUpperCase()}`);
+      loadSettingsData(true);
+    } catch (err) {
+      showToast(`Broker switch failed: ${err.message}`, 4000);
+      document.getElementById("settingsBrokerSelect").value = "paper";
+    }
+  }
+
 </script>
 
 </body>

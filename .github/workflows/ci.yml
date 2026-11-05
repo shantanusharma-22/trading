@@ -1,0 +1,62 @@
+name: Vyapar AI CI & Secret Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  audit-and-test:
+    name: Test Suite & Compliance
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Security & Secret Scan
+        run: |
+          echo "Scanning codebase for hardcoded secrets, broker tokens, or webhooks..."
+          python -c "
+          import os, re, sys
+          secret_patterns = [
+              re.compile(r'bot[0-9]{8,12}:[A-Za-z0-9_-]{30,40}'),
+              re.compile(r'https://discord(?:app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+'),
+              re.compile(r'\"api_key\"\s*:\s*\"[a-zA-Z0-9]{20,}\"')
+          ]
+          ignored_dirs = {'.git', '__pycache__', '.pytest_cache'}
+          failed = False
+          for root, dirs, files in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in ignored_dirs]
+              for f in files:
+                  if f.endswith(('.py', '.json', '.html', '.md', '.yml', '.yaml')):
+                      path = os.path.join(root, f)
+                      try:
+                          with open(path, 'r', encoding='utf-8', errors='ignore') as fp:
+                              content = fp.read()
+                              for pat in secret_patterns:
+                                  matches = pat.findall(content)
+                                  if matches:
+                                      print(f'::error file={path}::Sensitive token pattern detected in {path}')
+                                      failed = True
+                      except Exception:
+                          pass
+          if failed:
+              print('FAIL: Plaintext secrets detected in committed code. Move them to environment variables.')
+              sys.exit(1)
+          print('PASS: No plaintext secrets or active webhook URLs found in codebase.')
+          "
+
+      - name: Run Indian Equities Test Suite
+        run: |
+          python -m unittest tests/test_indian_market.py
+

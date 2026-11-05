@@ -88,8 +88,10 @@ cd trading
 Run the comprehensive automated unit test suite:
 ```bash
 python main.py test
+# Or directly via unittest:
+python -m unittest tests/test_indian_market.py
 ```
-*All 23 institutional tests run and pass in ~0.05s using only Python's standard library.*
+*All 72 institutional unit and contract tests run and pass in ~5.2s using only Python's standard library.*
 
 ### 4. Launch Unified Master Console
 ```bash
@@ -412,30 +414,39 @@ Local models can interact directly with the platform via:
 
 ---
 
-## Interactive Web Dashboard & REST API
+## Interactive Multi-Page Dashboard & REST API
 
-The platform provides a browser-based Command Center powered by vanilla HTML/CSS/JavaScript and local TradingView charts:
+The platform provides an institutional browser-based Command Center powered by vanilla HTML/CSS/JavaScript and local TradingView charts, structured as an 8-page hash-routed Single Page Application (zero external JS frameworks or npm build steps required):
 
-- **Session Timeline Ribbon**: Visual market clock tracking Pre-Open (09:00), Market Open (09:15), Expiry Cutoff (13:45), MIS Squareoff (15:10), and Market Close (15:30).
-- **Market Context Bar**: Real-time Nifty 50, Bank Nifty, and India VIX tickers with Advance-Decline breadth ratio and trading session status.
-- **TradingView Chart Container**: Offline Lightweight Charts v4.2.0 rendering 5m candlestick data, intraday VWAP line, and CPR/Camarilla overlays.
-- **Cockpit with AIC-20 Gauge**: Live radial SVG meter displaying the 0–100 confluence score and real-time pass/fail indicators for all risk gates.
-- **Stock Profile Drawer**: Slide-out drawer with 52-week high/low, delivery volumes, market cap, and PE valuation.
-- **Performance Analytics Tab**: Interactive monthly calendar PnL heatmap, equity curve chart, and strategy scorecard.
+### 8 Dedicated Pages (`#/hash` routing)
+1. **`#/trade` (Trading Cockpit)**: Live TradingView Lightweight Chart v4.2.0 with CPR/Camarilla overlays and VWAP, AIC-20 radial conviction gauge, order execution ticket, active positions, timeline ribbon, and autopilot console.
+2. **`#/scanner` (Real-Time Scrip Scanner)**: Filterable matrix of 15m ORB breakout candidates and pre-open gap leaders with CPR width, delivery %, AIC-20 score, setup tags, and "Send to Trade" one-click action.
+3. **`#/strategies` (20 Strategies Matrix)**: Complete matrix of all 20 intraday strategies showing live signal states (BUY/SELL/NEUTRAL), empirical win rates and trade counts from the SQLite journal (no hardcoded estimates), AIC-20 6-pillar breakdown, and explicit analysis-only badges.
+4. **`#/journal` (Trade Journal & Net P&L)**: SQLite trade ledger net of all statutory charges (STT, GST, stamp duty, SEBI turnover, brokerage), interactive cumulative equity curve, drawdown shading, monthly calendar P&L heatmap, and sortable trade table with CSV export.
+5. **`#/risk` (Institutional Risk Radar)**: 5 real-time radial gauges (daily loss limit used, profit-lock state, consecutive-loss killswitch counter, sector exposure, and India VIX band) paired with an audit log of every PASS/BLOCK decision and its statutory justification.
+6. **`#/backtest` (Walk-Forward & Monte Carlo Engine)**: 15m ORB walk-forward engine and Monte Carlo simulation with in-sample vs out-of-sample equity curves, outcome distribution, and sample size warning banner ($N < 200$).
+7. **`#/news` (Market Intelligence & FII/DII)**: NSE market news feed, institutional FII/DII net flows chart (cash segment in ₹ Cr), insider filings ($\ge$ ₹10 Lakhs), and upcoming corporate/macro event calendar.
+8. **`#/settings` (Broker Routing & System Safeguards)**: Broker failover heartbeat, watchlist scrip manager, risk parameter controls, webhook test dispatchers, and a modal safeguard requiring typed confirmation (`"I UNDERSTAND LIVE RISKS"`) to prevent accidental live execution.
 
 ### Core REST API Endpoints
 All endpoints return JSON and are accessible at `http://127.0.0.1:8765`:
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/api/status` | `GET` | Live market clock, portfolio cash, active holdings, and configuration |
+| `/api/status` | `GET` | Live market clock (IST), portfolio cash, active holdings, and configuration |
 | `/api/quotes?symbols=...` | `GET` | Real-time NSE/BSE quote snapshots (5s TTL cache) |
 | `/api/candles?symbol=...&interval=5m` | `GET` | High-fidelity OHLCV bars with VWAP and CPR overlays |
 | `/api/strategies/list` | `GET` | Complete library of all 20 intraday strategies |
 | `/api/strategies/evaluate?symbol=...` | `GET` | Real-time multi-strategy evaluation & AIC-20 score |
-| `/api/strategies/select` | `POST` | Select active strategy for the cockpit |
-| `/api/autotrader/start` | `POST` | Start the autonomous screener and execution engine |
-| `/api/autotrader/stop` | `POST` | Stop the autonomous trading engine |
+| `/api/strategies/matrix?symbol=...` | `GET` | Live signal state and journal win rates for all 20 strategies |
+| `/api/scanner/candidates` | `GET` | Pre-open gap and 15m ORB screening candidates |
+| `/api/risk/radar` | `GET` | 5 visual risk gauges and timestamped pre-trade decision audit log |
+| `/api/backtest/run?symbol=...` | `GET` | Walk-forward backtest and Monte Carlo simulation metrics |
+| `/api/news/feed` | `GET` | Curated NSE market news items |
+| `/api/news/fiidii` | `GET` | Institutional FII & DII net cash investment flows |
+| `/api/news/insider` | `GET` | SEBI insider trading disclosures ($\ge$ ₹10 Lakhs) |
+| `/api/failover/status` | `GET` | Broker heartbeat and primary/secondary routing status |
+| `/api/failover/switch` | `POST` | Switch broker routing (requires typed confirmation for live) |
 | `/api/trade/place` | `POST` | Paper trade execution with C1/C3/C4 risk validations |
 | `/api/trade/exit` | `POST` | Position square-off with SQLite trade journal logging |
 | `/api/panic` | `POST` | Emergency liquidation of all active positions |
@@ -451,24 +462,14 @@ The test suite in [`tests/test_indian_market.py`](tests/test_indian_market.py) p
 python -m unittest tests/test_indian_market.py
 ```
 
-### Coverage Highlights (23 Unit Tests)
-- `test_timezone_conversion`: Bidirectional UTC to IST (+05:30) mapping.
-- `test_session_hours_and_bars`: Exactly 75 five-minute bars per regular session.
-- `test_holiday_detection`: Accurate detection of Republic Day, Gandhi Jayanti, Diwali, etc.
-- `test_statutory_taxes_and_brokerage`: STT, Stamp Duty, NSE fees, SEBI fees, and GST calculations.
-- `test_cpr_and_camarilla_math`: Pivot math, TC/BC levels, and Narrow CPR classification.
-- `test_pre_trade_risk_gate`: C4 universal pre-trade gate validation.
-- `test_daily_profit_high_water_mark_lock`: Profit lock protection against green-to-red reversal.
-- `test_consecutive_losses_killswitch`: Immediate trading freeze after 2 losses.
-- `test_correlated_sector_risk_cap`: Sector concentration limits.
-- `test_macro_event_blackouts`: Trade freeze during RBI policy announcements and Union Budget.
-- `test_thursday_expiry_cutoff`: Thursday 13:45 IST entry restriction.
-- `test_india_vix_regime_filter`: Safe volatility window (11.5–24.0).
-- `test_sqlite_journal_and_schema`: SQLite database creation and trade ledger integrity.
-- `test_autotrader_execution_loop`: Autonomous screening, order sizing, and trailing stop tracking.
-- `test_c1_sizer_rejection`: Rejection of proposals where risk per share exceeds loss limit.
-- `test_c3_server_side_validation`: Strict validation of stop-loss and entry values.
-- `test_c5_mid_day_parameter_lock`: Protection preventing mid-day loosening of risk limits.
+### Coverage Highlights (72 Comprehensive Tests)
+- **Timezone & Session Calendar**: Bidirectional UTC/IST mapping, 75 five-minute bars per session, boundary time testing (09:14, 09:15, 14:45, 15:10, 15:30), weekend/holiday skipping.
+- **API Contracts & UI Shapes**: Shape, empty, and error contract tests for all 18 REST endpoints without live network dependency.
+- **Pre-Trade Risk Gates & Safeguards**: Fail-closed gate validation, side-aware risk calculation (longs & shorts), daily loss limit, consecutive loss killswitch, high-water mark profit lock, VIX bounds, and macro blackout days.
+- **Position Sizing Property Tests**: 50 randomized iterations proving orders never breach risk caps, capital limits, or tick size constraints.
+- **Resilient Data Layer**: Exponential backoff, in-flight request deduplication, HTTP 429 rate limit cooldowns, and timeout fallbacks.
+- **Broker Payloads & Order Execution**: Zerodha, Angel One, and Shoonya payload generation, broker-side protective stops, and failover validation.
+- **Autopilot Engine**: Daily session rollover, 15:10 IST square-off with actual exit price P&L, thread-safe start/stop, and Windows console UTF-8 safety.
 
 ---
 

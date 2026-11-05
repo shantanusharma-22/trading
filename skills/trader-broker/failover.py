@@ -8,35 +8,27 @@ and Shoonya (Finvasia) in case of broker downtime or API latency. Standard libra
 """
 
 import argparse
-import json
 import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from skills.common import load_json, save_json
+
 DEFAULT_CONFIG_FILE = os.path.join(BASE_DIR, "trader", "config.json")
 
 
 def get_active_broker():
-    if os.path.exists(DEFAULT_CONFIG_FILE):
-        try:
-            with open(DEFAULT_CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f).get("broker", "paper")
-        except Exception:
-            pass
-    return "paper"
+    cfg = load_json(DEFAULT_CONFIG_FILE, default={"broker": "paper"})
+    return cfg.get("broker", "paper")
 
 
 def switch_broker(target_broker):
-    cfg = {"broker": target_broker}
-    if os.path.exists(DEFAULT_CONFIG_FILE):
-        try:
-            with open(DEFAULT_CONFIG_FILE, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                cfg["broker"] = target_broker
-        except Exception:
-            pass
-    with open(DEFAULT_CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2)
+    cfg = load_json(DEFAULT_CONFIG_FILE, default={"broker": "paper"})
+    cfg["broker"] = target_broker
+    save_json(DEFAULT_CONFIG_FILE, cfg)
     print(f"Switched active broker routing to: {target_broker.upper()}")
 
 
@@ -68,4 +60,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

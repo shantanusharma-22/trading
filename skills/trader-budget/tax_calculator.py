@@ -95,6 +95,47 @@ def calculate_intraday_charges(buy_price: float, sell_price: float, qty: int,
     }
 
 
+def calculate_single_leg_charges(price: float, qty: int, side: str = "BUY",
+                                 brokerage_per_order: float = 20.0) -> dict:
+    """Calculates statutory charges and brokerage for a single order execution leg (BUY or SELL)."""
+    if qty <= 0 or price <= 0:
+        return {
+            "turnover": 0.0,
+            "brokerage": 0.0,
+            "stt": 0.0,
+            "stamp_duty": 0.0,
+            "exchange_charges": 0.0,
+            "sebi_charges": 0.0,
+            "gst": 0.0,
+            "statutory_charges": 0.0,
+            "total_charges": 0.0
+        }
+
+    turnover = round(price * qty, 2)
+    s = str(side).upper()
+
+    # Intraday equity rates: STT on sell only (0.025%), Stamp duty on buy only (0.003%)
+    stt = round(turnover * 0.00025, 2) if s == "SELL" else 0.0
+    stamp_duty = round(turnover * 0.00003, 2) if s == "BUY" else 0.0
+    exchange_charges = round(turnover * 0.0000297, 2)
+    sebi_charges = round(turnover * 0.000001, 2)
+    brokerage = min(brokerage_per_order, round(turnover * 0.0003, 2))
+    gst = round((brokerage + exchange_charges + sebi_charges) * 0.18, 2)
+    statutory_charges = round(stt + stamp_duty + exchange_charges + sebi_charges + brokerage + gst, 2)
+
+    return {
+        "turnover": turnover,
+        "brokerage": brokerage,
+        "stt": stt,
+        "stamp_duty": stamp_duty,
+        "exchange_charges": exchange_charges,
+        "sebi_charges": sebi_charges,
+        "gst": gst,
+        "statutory_charges": statutory_charges,
+        "total_charges": statutory_charges
+    }
+
+
 def format_charges_summary(res: dict) -> str:
     """Format charges into an easy-to-read summary table."""
     lines = [
