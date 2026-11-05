@@ -1,0 +1,86 @@
+{
+  "events": [
+    {
+      "id": "rbi_mpc_dec26",
+      "type": "rbi_policy",
+      "title": "RBI Monetary Policy Committee Announcement",
+      "date": "2026-12-04",
+      "time": "10:00",
+      "scope": "market",
+      "action": "block_new",
+      "before_min": 15,
+      "after_min": 30
+    },
+    {
+      "id": "rbi_mpc_feb26",
+      "type": "rbi_policy",
+      "title": "RBI Monetary Policy Committee Announcement",
+      "date": "2026-02-06",
+      "time": "10:00",
+      "scope": "market",
+      "action": "block_new",
+      "before_min": 15,
+      "after_min": 30
+    },
+    {
+      "id": "tcs_q3_results",
+      "type": "results",
+      "title": "TCS Q3 Corporate Results",
+      "date": "2026-11-06",
+      "scope": "symbol",
+      "symbols": ["TCS.NS"],
+      "action": "block_symbol_day"
+    },
+    {
+      "id": "muhurat_2026",
+      "type": "special_session",
+      "title": "Diwali Muhurat Trading Session",
+      "date": "2026-11-08",
+      "scope": "market",
+      "action": "block_new"
+    },
+    {
+      "id": "union_budget_2026",
+      "type": "union_budget",
+      "title": "Union Budget Presentation",
+      "date": "2026-02-01",
+      "time": "11:00",
+      "scope": "market",
+      "action": "block_new"
+    },
+    {
+      "id": "union_budget_2027",
+      "type": "union_budget",
+      "title": "Union Budget Presentation",
+      "date": "2027-02-01",
+      "time": "11:00",
+      "scope": "market",
+      "action": "block_new"
+    }
+  ],
+  "rules": {
+    "fo_expiry": {
+      "enabled": true,
+      "weekday": "THURSDAY",
+      "action": "reduce_size",
+      "size_factor": 0.5
+    },
+    "results_day_before_and_after": true
+  },
+  "macro_blackouts": [
+    {
+      "name": "RBI Monetary Policy Committee (MPC) Rate Decision",
+      "date": "2026-02-06",
+      "start_time": "09:45",
+      "end_time": "10:45",
+      "description": "RBI Governor policy statement & repo rate announcement. Extreme whipsaw risk."
+    },
+    {
+      "name": "Union Budget Presentation",
+      "date": "2026-02-01",
+      "start_time": "10:45",
+      "end_time": "13:30",
+      "description": "Finance Minister Union Budget speech."
+    }
+  ]
+}

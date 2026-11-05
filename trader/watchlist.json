@@ -1,0 +1,135 @@
+{
+  "as_of_ist": "2026-11-05 12:05:34",
+  "mode": "orb_scan",
+  "or_minutes": 15,
+  "scanned": 30,
+  "hit_count": 14,
+  "hits": [
+    {
+      "symbol": "TCS.NS",
+      "trigger_time": "09:45 IST",
+      "trigger_price": 2508.0,
+      "range_high": 2499.9,
+      "range_low": 2476.0,
+      "range_spread": 23.9,
+      "breakout_pct": 0.32
+    },
+    {
+      "symbol": "INFY.NS",
+      "trigger_time": "09:35 IST",
+      "trigger_price": 1160.5,
+      "range_high": 1154.7,
+      "range_low": 1144.9,
+      "range_spread": 9.8,
+      "breakout_pct": 0.5
+    },
+    {
+      "symbol": "ICICIBANK.NS",
+      "trigger_time": "09:50 IST",
+      "trigger_price": 1464.7,
+      "range_high": 1461.7,
+      "range_low": 1446.3,
+      "range_spread": 15.4,
+      "breakout_pct": 0.21
+    },
+    {
+      "symbol": "SBIN.NS",
+      "trigger_time": "11:25 IST",
+      "trigger_price": 999.0,
+      "range_high": 998.3,
+      "range_low": 990.0,
+      "range_spread": 8.3,
+      "breakout_pct": 0.07
+    },
+    {
+      "symbol": "BAJFINANCE.NS",
+      "trigger_time": "09:40 IST",
+      "trigger_price": 1043.75,
+      "range_high": 1041.35,
+      "range_low": 1021.0,
+      "range_spread": 20.35,
+      "breakout_pct": 0.23
+    },
+    {
+      "symbol": "HCLTECH.NS",
+      "trigger_time": "09:45 IST",
+      "trigger_price": 1446.8,
+      "range_high": 1437.4,
+      "range_low": 1428.1,
+      "range_spread": 9.3,
+      "breakout_pct": 0.65
+    },
+    {
+      "symbol": "MARUTI.NS",
+      "trigger_time": "09:45 IST",
+      "trigger_price": 12537.0,
+      "range_high": 12525.0,
+      "range_low": 12259.0,
+      "range_spread": 266.0,
+      "breakout_pct": 0.1
+    },
+    {
+      "symbol": "SUNPHARMA.NS",
+      "trigger_time": "09:35 IST",
+      "trigger_price": 1810.6,
+      "range_high": 1802.3,
+      "range_low": 1769.5,
+      "range_spread": 32.8,
+      "breakout_pct": 0.46
+    },
+    {
+      "symbol": "ADANIENT.NS",
+      "trigger_time": "09:40 IST",
+      "trigger_price": 2763.9,
+      "range_high": 2758.0,
+      "range_low": 2727.3,
+      "range_spread": 30.7,
+      "breakout_pct": 0.21
+    },
+    {
+      "symbol": "TITAN.NS",
+      "trigger_time": "09:40 IST",
+      "trigger_price": 4821.3,
+      "range_high": 4814.2,
+      "range_low": 4750.4,
+      "range_spread": 63.8,
+      "breakout_pct": 0.15
+    },
+    {
+      "symbol": "AXISBANK.NS",
+      "trigger_time": "09:45 IST",
+      "trigger_price": 1265.5,
+      "range_high": 1264.6,
+      "range_low": 1247.5,
+      "range_spread": 17.1,
+      "breakout_pct": 0.07
+    },
+    {
+      "symbol": "BAJAJFINSV.NS",
+      "trigger_time": "09:35 IST",
+      "trigger_price": 1803.0,
+      "range_high": 1799.3,
+      "range_low": 1784.1,
+      "range_spread": 15.2,
+      "breakout_pct": 0.21
+    },
+    {
+      "symbol": "M&M.NS",
+      "trigger_time": "09:50 IST",
+      "trigger_price": 3071.8,
+      "range_high": 3071.5,
+      "range_low": 2984.3,
+      "range_spread": 87.2,
+      "breakout_pct": 0.01
+    },
+    {
+      "symbol": "ULTRACEMCO.NS",
+      "trigger_time": "11:35 IST",
+      "trigger_price": 12240.0,
+      "range_high": 12230.0,
+      "range_low": 12065.0,
+      "range_spread": 165.0,
+      "breakout_pct": 0.08
+    }
+  ]
+}
