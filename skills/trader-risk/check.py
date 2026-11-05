@@ -3,23 +3,19 @@
 Checks proposed orders against hard risk parameters before execution:
   - Rupee loss limits & daily drawdown caps
   - High-Water Mark Daily Profit Lock (Never let a green day turn red)
-  - Macro Event Blackouts (RBI MPC policy & Union Budget freezes)
+  - Unified Macro Event Blackouts (RBI MPC policy & Union Budget freezes)
   - Consecutive losses killswitch (stops revenge trading)
   - Correlated sector risk caps (max 1 trade per sector)
-  - Thursday weekly expiry volatility cutoff (13:45 IST)
+  - Configurable weekly expiry volatility cutoff (per instrument)
   - India VIX volatility regime filter (^INDIAVIX)
-  - Market Breadth A/D ratio filter
-Standard library only. Writes trader/state/risk.json.
-
-    python3 check.py                                 # checks trader/orders.json
-    python3 check.py --json                          # print verdict as JSON
-    python3 check.py --now "2026-10-19 10:15"        # pin the clock (IST)
-    python3 check.py --vix 16.5                      # explicit VIX level
+  - Market Breadth A/D ratio filter with staleness checking
+  - Side-aware stop and target validation (BUY vs SELL)
+  - Minimum tick size (0.05 for equities, 0.01 for ETFs)
+Standard library only. Writes trader/state/risk.json atomically.
 """
 
 import argparse
 import datetime
-import hashlib
 import json
 import os
 import sys
@@ -34,20 +30,19 @@ from common import (
     IST_OFFSET,
     NSE_HOLIDAYS,
     OPEN,
+    SECTOR_MAP,
+    STATE_LOCK,
+    compute_order_fingerprint,
+    get_tick_size,
+    get_todays_trade_state,
+    is_valid_tick,
     ist_to_utc,
+    load_json,
+    normalize_symbol,
     resolve_path,
+    save_json,
     to_ist,
 )
-
-SECTOR_MAP = {
-    "HDFCBANK.NS": "BANKING", "ICICIBANK.NS": "BANKING", "SBIN.NS": "BANKING",
-    "KOTAKBANK.NS": "BANKING", "AXISBANK.NS": "BANKING", "INDUSINDBK.NS": "BANKING",
-    "TCS.NS": "IT", "INFY.NS": "IT", "HCLTECH.NS": "IT", "WIPRO.NS": "IT", "TECHM.NS": "IT",
-    "TATAMOTORS.NS": "AUTO", "MARUTI.NS": "AUTO", "M&M.NS": "AUTO", "BAJAJ-AUTO.NS": "AUTO", "EICHERMOT.NS": "AUTO",
-    "SUNPHARMA.NS": "PHARMA", "CIPLA.NS": "PHARMA", "DRREDDY.NS": "PHARMA", "DIVISLAB.NS": "PHARMA",
-    "TATASTEEL.NS": "METAL", "JSWSTEEL.NS": "METAL", "HINDALCO.NS": "METAL",
-    "RELIANCE.NS": "ENERGY", "ONGC.NS": "ENERGY", "BPCL.NS": "ENERGY", "COALINDIA.NS": "ENERGY"
-}
 
 DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
 DEFAULT_CONFIG_FILE = resolve_path("trader/config.json")
@@ -55,6 +50,7 @@ DEFAULT_EVENTS_FILE = resolve_path("trader/events.json")
 DEFAULT_RISK_STATE = resolve_path("trader/state/risk.json")
 DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
 DEFAULT_BREADTH_STATE = resolve_path("trader/state/breadth.json")
+DEFAULT_SURVEILLANCE_FILE = resolve_path("trader/data/surveillance.json")
 
 DEFAULT_CONFIG = {
     "budget": 100000.0,
@@ -69,11 +65,14 @@ DEFAULT_CONFIG = {
     "profit_lock_floor_inr": 1500.0,
     "min_reward_risk": 1.5,
     "require_stop": True,
-    "no_entries_before": "09:30",
-    "no_entries_after": "14:45",
-    "expiry_cutoff": "13:45",
+    "no_entries_before": "09:30:00",
+    "no_entries_after": "14:45:00",
+    "expiry_cutoff": "13:45:00",
     "vix_min": 11.5,
     "vix_max": 24.0,
+    "require_vix": True,
+    "require_breadth": False,
+    "min_breadth_ratio": 0.6,
     "blocked": []
 }
 
@@ -88,15 +87,52 @@ def parse_now(text):
     return (dt - dt.utcoffset()).replace(tzinfo=None)
 
 
-def compute_order_fingerprint(order: dict) -> str:
-    raw = f"{order.get('symbol')}:{order.get('side')}:{order.get('qty')}:{order.get('entry_price')}:{order.get('stop_loss_price')}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+def parse_time_obj(val) -> datetime.time:
+    """Parses time string ('HH:MM' or 'HH:MM:SS') or returns datetime.time directly."""
+    if isinstance(val, datetime.time):
+        return val
+    parts = [int(p) for p in str(val).strip().split(":")]
+    if len(parts) == 2:
+        return datetime.time(parts[0], parts[1], 0)
+    elif len(parts) >= 3:
+        return datetime.time(parts[0], parts[1], parts[2])
+    return datetime.time(0, 0, 0)
+
+
+def load_config_fail_closed(path: str = DEFAULT_CONFIG_FILE) -> tuple:
+    """Loads configuration with utf-8-sig encoding, failing closed on syntax or I/O errors."""
+    resolved = resolve_path(path)
+    if not os.path.exists(resolved):
+        return True, DEFAULT_CONFIG.copy(), ""
+    try:
+        with open(resolved, "r", encoding="utf-8-sig") as f:
+            user_cfg = json.load(f)
+        merged = DEFAULT_CONFIG.copy()
+        if isinstance(user_cfg, dict):
+            merged.update(user_cfg)
+        return True, merged, ""
+    except Exception as e:
+        return False, {}, f"Config Error: Unable to read config file {resolved} ({e})"
+
+
+def load_events_fail_closed(path: str = DEFAULT_EVENTS_FILE) -> tuple:
+    """Loads unified events.json, failing closed on syntax or I/O errors."""
+    resolved = resolve_path(path)
+    if not os.path.exists(resolved):
+        return True, {"events": [], "rules": {}}, ""
+    try:
+        with open(resolved, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+        return True, data, ""
+    except Exception as e:
+        return False, {}, f"Events Error: Unable to read events file {resolved} ({e})"
 
 
 def fetch_india_vix():
+    """Fetches real-time India VIX (^INDIAVIX) from Yahoo Finance."""
     try:
         url = "https://query2.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?range=1d&interval=1d"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (VyaparAI/1.0)"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
@@ -104,192 +140,274 @@ def fetch_india_vix():
         return None
 
 
-def event_guard(symbol: str, now_ist: datetime.datetime = None) -> dict:
-    """Evaluates Indian market event calendar and risk rules for symbol and time.
-    Returns: {"allowed": bool, "size_factor": float, "reason": str, "event": dict or None}
+def get_expiry_for_symbol(symbol: str, events_data: dict) -> tuple:
+    """Resolves expiry weekday and cutoff time per instrument."""
+    fo_rules = events_data.get("rules", {}).get("fo_expiry", {})
+    weekdays_map = fo_rules.get("weekdays", {
+        "default": "THURSDAY",
+        "^NSEBANK": "WEDNESDAY",
+        "BANKNIFTY": "WEDNESDAY",
+        "^BSESN": "FRIDAY",
+        "SENSEX": "FRIDAY"
+    })
+    cutoff = fo_rules.get("cutoff_time", "13:45:00")
+    size_factor = float(fo_rules.get("size_factor", 0.5))
+
+    clean_sym = symbol.upper().replace(".NS", "").replace(".BO", "")
+    target_weekday = weekdays_map.get(symbol.upper(), weekdays_map.get(clean_sym, weekdays_map.get("default", "THURSDAY")))
+    return target_weekday.upper(), parse_time_obj(cutoff), size_factor
+
+
+def evaluate_event_restrictions(symbol: str, now_ist: datetime.datetime, events_data: dict) -> tuple:
+    """Checks the single unified events schema for active blackouts and size reductions.
+    Returns: (allowed, size_factor, reason, action, event_dict)
     """
-    if now_ist is None:
-        now_ist = datetime.datetime.now(datetime.timezone.utc) + IST_OFFSET
-
     d_str = now_ist.strftime("%Y-%m-%d")
-    t_str = now_ist.strftime("%H:%M")
+    curr_t = now_ist.time()
 
-    # 1. Exchange Holiday Check
+    # 1. Official NSE Holiday Calendar
     if d_str in NSE_HOLIDAYS:
-        return {
-            "allowed": False,
-            "size_factor": 0.0,
-            "reason": f"NSE Exchange Holiday: {NSE_HOLIDAYS[d_str]}",
-            "event": {"type": "holiday", "title": NSE_HOLIDAYS[d_str]}
-        }
+        return False, 0.0, f"NSE Exchange Holiday: {NSE_HOLIDAYS[d_str]}", "BLOCK_ALL_ENTRIES", {"type": "holiday", "name": NSE_HOLIDAYS[d_str]}
 
     # 2. Weekend Check
     if now_ist.weekday() >= 5:
+        return False, 0.0, f"Weekend: {now_ist.strftime('%A')} (Exchange Closed)", "BLOCK_ALL_ENTRIES", {"type": "weekend"}
+
+    events = events_data.get("events", [])
+    for ev in events:
+        if ev.get("date") == d_str:
+            ev_type = ev.get("type")
+            title = ev.get("title", ev.get("name", "Event"))
+            raw_action = ev.get("action", "BLOCK_ALL_ENTRIES")
+            action = "BLOCK_ALL_ENTRIES" if "FREEZE" in raw_action.upper() else raw_action
+
+            # Corporate earnings blackout
+            if ev_type == "results":
+                ev_symbols = [s.strip().upper() for s in ev.get("symbols", [])]
+                norm_sym = symbol.strip().upper() if symbol else ""
+                if norm_sym in ev_symbols:
+                    return False, 0.0, f"Corporate Action Blackout: {symbol} Quarterly Results Day", action, ev
+
+            # Window-based macro policy or blackout
+            start_str = ev.get("start_time")
+            end_str = ev.get("end_time")
+            if start_str and end_str:
+                start_t = parse_time_obj(start_str)
+                end_t = parse_time_obj(end_str)
+                if start_t <= curr_t <= end_t:
+                    return False, 0.0, f"Macro Event Blackout: {title} ({start_str}-{end_str} IST)", action, ev
+
+            # Full-day macro blackout (e.g. Budget day)
+            elif ev_type in ("union_budget", "special_session"):
+                return False, 0.0, f"Macro Event Blackout: {title} (Trading Restricted)", action, ev
+
+    # Check F&O expiry sizing for instrument
+    exp_weekday, cutoff_t, size_factor = get_expiry_for_symbol(symbol, events_data)
+    day_names = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+    if day_names[now_ist.weekday()] == exp_weekday:
+        return True, size_factor, f"Weekly F&O Expiry ({exp_weekday}): Position size scaled by {size_factor}", "SCALE_SIZE", {"type": "fo_expiry"}
+
+    return True, 1.0, "", "ALLOW", None
+
+
+def event_guard(symbol: str, now_ist: datetime.datetime = None) -> dict:
+    """Evaluates Indian market event calendar and risk rules for symbol and time."""
+    if now_ist is None:
+        now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
+    ok, ev_data, err = load_events_fail_closed(DEFAULT_EVENTS_FILE)
+    if not ok:
         return {
             "allowed": False,
             "size_factor": 0.0,
-            "reason": f"Weekend: {now_ist.strftime('%A')} (Exchange Closed)",
-            "event": {"type": "weekend"}
+            "reason": err,
+            "action": "BLOCK_ALL_ENTRIES",
+            "event": None
         }
-
-    events_file = DEFAULT_EVENTS_FILE
-    if os.path.exists(events_file):
-        try:
-            with open(events_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            events = data.get("events", [])
-            rules = data.get("rules", {})
-
-            # Check individual scheduled events
-            for ev in events:
-                if ev.get("date") == d_str:
-                    ev_type = ev.get("type")
-                    if ev_type == "rbi_policy":
-                        ann_time = ev.get("time", "10:00")
-                        b_min = ev.get("before_min", 15)
-                        a_min = ev.get("after_min", 30)
-                        try:
-                            ann_dt = datetime.datetime.strptime(f"{d_str} {ann_time}", "%Y-%m-%d %H:%M")
-                            start_window = ann_dt - datetime.timedelta(minutes=b_min)
-                            end_window = ann_dt + datetime.timedelta(minutes=a_min)
-                            if start_window <= now_ist <= end_window:
-                                return {
-                                    "allowed": False,
-                                    "size_factor": 0.0,
-                                    "action": ev.get("action", "FREEZE_ALL_ENTRIES"),
-                                    "reason": f"Macro Blackout: {ev.get('title')} ({start_window.strftime('%H:%M')}-{end_window.strftime('%H:%M')} IST)",
-                                    "event": ev
-                                }
-                        except Exception:
-                            pass
-
-                    elif ev_type == "results":
-                        ev_symbols = [s.strip().upper() for s in ev.get("symbols", [])]
-                        norm_sym = symbol.strip().upper() if symbol else ""
-                        if norm_sym in ev_symbols:
-                            return {
-                                "allowed": False,
-                                "size_factor": 0.0,
-                                "action": ev.get("action", "BLOCK_SYMBOL_TODAY"),
-                                "reason": f"Corporate Action Blackout: {symbol} Quarterly Results Day",
-                                "event": ev
-                            }
-
-                    elif ev_type == "union_budget":
-                        return {
-                            "allowed": False,
-                            "size_factor": 0.0,
-                            "reason": f"Macro Blackout: {ev.get('title')} (Extreme Budget Volatility)",
-                            "event": ev
-                        }
-
-                    elif ev_type == "special_session":
-                        return {
-                            "allowed": False,
-                            "size_factor": 0.0,
-                            "reason": f"Special Session restriction: {ev.get('title')}",
-                            "event": ev
-                        }
-
-            # Check general rules (e.g. F&O Expiry risk reduction)
-            fo_rule = rules.get("fo_expiry", {})
-            if fo_rule.get("enabled", True):
-                exp_day = fo_rule.get("weekday", "THURSDAY").upper()
-                day_names = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
-                if day_names[now_ist.weekday()] == exp_day:
-                    return {
-                        "allowed": True,
-                        "size_factor": float(fo_rule.get("size_factor", 0.5)),
-                        "reason": f"Weekly F&O Expiry ({exp_day}): Position size scaled to {int(float(fo_rule.get('size_factor', 0.5))*100)}%",
-                        "event": {"type": "fo_expiry", "title": f"F&O Expiry ({exp_day})"}
-                    }
-
-        except Exception:
-            pass
-
+    allowed, size_factor, reason, action, ev = evaluate_event_restrictions(symbol, now_ist, ev_data)
     return {
-        "allowed": True,
-        "size_factor": 1.0,
-        "reason": "No active event restrictions",
-        "event": None
+        "allowed": allowed,
+        "size_factor": size_factor,
+        "reason": reason,
+        "action": action,
+        "event": ev
     }
 
 
-def check_macro_blackout(now_ist: datetime.datetime):
-    """Check if current time is within RBI policy or Union Budget blackout window (Suggestion #3)."""
-    if not os.path.exists(DEFAULT_EVENTS_FILE):
-        return False, ""
+def check_surveillance_lists(symbol: str) -> tuple:
+    """Checks NSE ASM, GSM, and T2T surveillance status."""
+    resolved = resolve_path(DEFAULT_SURVEILLANCE_FILE)
+    if not os.path.exists(resolved):
+        # Known baseline hard blocks
+        if symbol in {"ADANIPOWER.NS", "RPOWER.NS"}:
+            return False, f"Tradability Check: {symbol} is in Trade-to-Trade (T2T) series. Intraday MIS blocked."
+        return True, "unknown"
+
     try:
-        with open(DEFAULT_EVENTS_FILE, "r", encoding="utf-8") as f:
-            events = json.load(f).get("macro_blackouts", [])
-        d_str = now_ist.strftime("%Y-%m-%d")
-        t_str = now_ist.strftime("%H:%M")
-        for ev in events:
-            if ev.get("date") == d_str:
-                if ev.get("start_time", "00:00") <= t_str <= ev.get("end_time", "23:59"):
-                    return True, f"Macro Event Blackout: {ev.get('name')} ({ev.get('start_time')} - {ev.get('end_time')} IST)"
+        with open(resolved, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+        as_of = data.get("as_of", "unknown")
+        t2t = set(data.get("t2t", []))
+        asm = set(data.get("asm_stage_2_plus", []))
+        gsm = set(data.get("gsm", []))
+
+        if symbol in t2t:
+            return False, f"Surveillance Check (as of {as_of}): {symbol} is in Trade-to-Trade (T2T) series. MIS blocked."
+        if symbol in asm:
+            return False, f"Surveillance Check (as of {as_of}): {symbol} is in Long-term ASM Stage 2+. Intraday leverage blocked."
+        if symbol in gsm:
+            return False, f"Surveillance Check (as of {as_of}): {symbol} is in Graded Surveillance Measure (GSM). Blocked."
+
+        return True, f"Surveillance verified (as of {as_of})"
     except Exception:
-        pass
-    return False, ""
+        return True, "unknown"
 
 
-def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays_broker_state: dict, current_vix=None):
-    # 1. Macro Event Blackout
-    in_blackout, ev_msg = check_macro_blackout(now_ist)
-    if in_blackout:
-        return False, ev_msg
+def check_breadth_filter(now_ist: datetime.datetime, config: dict) -> tuple:
+    """Checks market breadth A/D ratio with staleness check."""
+    if not config.get("require_breadth", False):
+        return True, ""
 
-    # 2. Format check
+    resolved = resolve_path(DEFAULT_BREADTH_STATE)
+    if not os.path.exists(resolved):
+        return False, "Market Breadth Error: Breadth state file missing; new entries blocked by breadth gate."
+
+    try:
+        with open(resolved, "r", encoding="utf-8-sig") as f:
+            b_data = json.load(f)
+
+        ts = b_data.get("timestamp", 0)
+        now_ts = now_ist.timestamp()
+        if (now_ts - ts) > 900:  # Older than 15 minutes
+            return False, f"Market Breadth Stale: Last breadth update was {int((now_ts - ts)/60)}m ago (>15m threshold)."
+
+        adv = b_data.get("advances", 0)
+        dec = b_data.get("declines", 0)
+        ratio = adv / max(1, dec)
+        min_r = config.get("min_breadth_ratio", 0.6)
+        if ratio < min_r:
+            return False, f"Market Breadth Gate Block: Advances/Declines ratio {ratio:.2f} below required minimum {min_r:.2f}."
+
+        return True, ""
+    except Exception as e:
+        return False, f"Market Breadth Error: Failed to evaluate breadth state ({e})"
+
+
+def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays_broker_state: dict, current_vix=None, events_data=None):
+    """Core deterministic risk rules evaluator."""
     sym = order.get("symbol", "")
     if not sym or not (sym.endswith(".NS") or sym.endswith(".BO")):
         return False, "Symbol must be a valid Indian equity ticker (.NS or .BO)"
 
+    # 1. Event Blackout & Expiry Size Scaling (Fail Closed)
+    if events_data is None:
+        ev_ok, loaded_ev, ev_err = load_events_fail_closed(DEFAULT_EVENTS_FILE)
+        if not ev_ok:
+            return False, ev_err
+        ev_data = loaded_ev
+    else:
+        ev_data = events_data
+
+    allowed, size_factor, ev_msg, _, _ = evaluate_event_restrictions(sym, now_ist, ev_data)
+    if not allowed:
+        return False, ev_msg
+
+    # 2. Surveillance & T2T Tradability
+    surv_ok, surv_msg = check_surveillance_lists(sym)
+    if not surv_ok:
+        return False, surv_msg
+
+    # 3. Market Breadth Filter
+    breadth_ok, breadth_msg = check_breadth_filter(now_ist, config)
+    if not breadth_ok:
+        return False, breadth_msg
+
+    # 4. Quantity and format check
     qty = order.get("qty", 0)
     if not isinstance(qty, int) or qty <= 0:
         return False, f"Quantity must be a positive integer (received {qty})"
 
-    entry = order.get("entry_price", 0.0)
-    stop = order.get("stop_loss_price", 0.0)
-    target = order.get("take_profit_price", 0.0)
+    # Enforce size scaling if event or expiry day dictates size reduction
+    if size_factor < 1.0:
+        max_order_qty = max(1, int(config.get("max_order_inr", 50000.0) / max(0.01, float(order.get("entry_price", 1.0))) * size_factor))
+        if qty > max_order_qty:
+            return False, f"Event Sizing Rule: Quantity {qty} exceeds max scaled quantity {max_order_qty} ({int(size_factor*100)}% expiry limit)"
+
+    side = order.get("side", "BUY").upper()
+    if side not in ("BUY", "SELL"):
+        return False, f"Invalid order side '{side}'. Must be BUY or SELL."
+
+    entry = float(order.get("entry_price", 0.0))
+    stop = float(order.get("stop_loss_price", 0.0))
+    target = float(order.get("take_profit_price", 0.0))
 
     if entry <= 0:
         return False, "Entry price must be positive"
 
-    # 3. Stop placement
+    # Order Rupee Caps
+    order_val = entry * qty
+    max_order_val = config.get("max_order_inr", 50000.0)
+    if order_val > max_order_val:
+        return False, f"Order turnover Rs {order_val:,.2f} exceeds max order value limit Rs {max_order_val:,.2f}"
+
+    min_order_val = config.get("min_order_inr", 1000.0)
+    if order_val < min_order_val:
+        return False, f"Order turnover Rs {order_val:,.2f} is below min order value limit Rs {min_order_val:,.2f}"
+
+    # 5. Side-Aware Stop Placement & Risk Calculation
     if config.get("require_stop", True):
         if stop <= 0:
             return False, "Stop-loss is required"
-        if order.get("side", "BUY") == "BUY" and stop >= entry:
-            return False, f"Stop-loss (Rs {stop:.2f}) cannot be at or above entry price (Rs {entry:.2f})"
 
-    # 4. Blocked list
+        if side == "BUY":
+            if stop >= entry:
+                return False, f"Long Stop-loss (Rs {stop:.2f}) cannot be at or above entry price (Rs {entry:.2f})"
+            risk_per_share = entry - stop
+            if target > 0 and target <= entry:
+                return False, f"Long Profit Target (Rs {target:.2f}) cannot be at or below entry price (Rs {entry:.2f})"
+        else:  # SELL (Short)
+            if stop <= entry:
+                return False, f"Short Stop-loss (Rs {stop:.2f}) cannot be at or below entry price (Rs {entry:.2f})"
+            risk_per_share = stop - entry
+            if target > 0 and target >= entry:
+                return False, f"Short Profit Target (Rs {target:.2f}) cannot be at or above entry price (Rs {entry:.2f})"
+    else:
+        risk_per_share = abs(entry - stop) if stop > 0 else (entry * 0.01)
+
+    # 6. Blocked list
     blocked = config.get("blocked", [])
     if sym in blocked:
         return False, f"Symbol {sym} is on the blocked tickers list"
 
-    # 5. Tick size (0.05 paise)
+    # 7. Tick size check (0.05 for equities, 0.01 for ETFs)
+    tick = get_tick_size(sym)
     for price_val, label in [(entry, "Entry"), (stop, "Stop"), (target, "Target")]:
-        if price_val > 0:
-            cents = round(price_val * 100)
-            if cents % 5 != 0:
-                return False, f"{label} Rs {price_val:.2f} is not on 0.05 NSE tick grid"
+        if price_val > 0 and not is_valid_tick(price_val, tick):
+            return False, f"{label} Rs {price_val:.2f} is not on {tick} tick grid for {sym}"
 
-    # 6. Loss per trade limit
-    risk_per_share = entry - stop
+    # 8. Loss per trade limit
     total_risk = round(risk_per_share * qty, 2)
     max_loss_limit = config.get("max_loss_per_trade_inr", 1000.0)
     if total_risk > max_loss_limit:
         return False, f"Trade risk Rs {total_risk:,.2f} exceeds max loss limit Rs {max_loss_limit:,.2f}"
 
-    # 7. Reward : Risk ratio
-    if target > entry and risk_per_share > 0:
-        rr = round((target - entry) / risk_per_share, 2)
+    # 9. Reward : Risk ratio
+    if target > 0 and risk_per_share > 0:
+        if side == "BUY":
+            reward_pts = target - entry
+        else:
+            reward_pts = entry - target
+        rr = round(reward_pts / risk_per_share, 2)
         min_rr = config.get("min_reward_risk", 1.5)
         if rr < min_rr:
             return False, f"Reward-to-risk {rr}:1 is below required minimum {min_rr}:1"
 
-    # 8. High-Water Mark Daily Profit Lock (Suggestion #4)
     placed_trades = todays_broker_state.get("trades_today", [])
+
+    # 10. Duplicate Symbol Check (No duplicate trades for the same ticker today)
+    if any(t.get("symbol") == sym for t in placed_trades):
+        return False, f"Duplicate symbol: {sym} has already been traded today"
+
+    # 11. High-Water Mark Daily Profit Lock
     net_pnls = [t.get("pnl", 0.0) for t in placed_trades if "pnl" in t]
     if net_pnls:
         cum_pnl = 0.0
@@ -304,18 +422,18 @@ def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays
         if peak_pnl >= trigger and running_pnl <= floor:
             return False, f"Daily Profit High-Water Mark Lockout: Peak was Rs {peak_pnl:,.2f}, current profit Rs {running_pnl:,.2f} reached floor Rs {floor:,.2f}. Capital locked for today."
 
-    # 9. Consecutive Losses Killswitch
+    # 12. Consecutive Losses Killswitch
     max_consec = config.get("max_consecutive_losses", 2)
     consec_losses = 0
     for t in reversed(placed_trades):
         if t.get("pnl", 0.0) < 0:
             consec_losses += 1
-        else:
+        elif t.get("pnl", 0.0) > 0:
             break
     if consec_losses >= max_consec:
         return False, f"Killswitch triggered: {consec_losses} consecutive losses reached today. Stop trading."
 
-    # 10. Correlated Sector Risk Cap
+    # 13. Correlated Sector Risk Cap
     target_sector = SECTOR_MAP.get(sym)
     if target_sector:
         max_sec = config.get("max_trades_per_sector", 1)
@@ -323,18 +441,22 @@ def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays
         if active_in_sec >= max_sec:
             return False, f"Sector risk cap reached: already holding/traded {active_in_sec} stock(s) in {target_sector}"
 
-    # 11. Daily Loss Limit & Trade Counts
+    # 14. Daily Loss Limit (Including Realized P&L + Cumulative Risk)
     max_trades = config.get("max_trades_per_day", 3)
     if len(placed_trades) >= max_trades:
         return False, f"Max trades per day limit ({max_trades}) already reached today"
 
-    cumulative_risk = sum(t.get("max_loss", 0.0) for t in placed_trades) + total_risk
+    realized_loss = abs(min(0.0, sum(t.get("pnl", 0.0) for t in placed_trades)))
+    cumulative_risk = sum(t.get("max_loss", 0.0) for t in placed_trades) + total_risk + realized_loss
     max_daily_loss = config.get("max_daily_loss_inr", 3000.0)
     if cumulative_risk > max_daily_loss:
         return False, f"Cumulative daily risk Rs {cumulative_risk:,.2f} exceeds daily limit Rs {max_daily_loss:,.2f}"
 
-    # 12. India VIX Regime Filter
-    if current_vix is not None:
+    # 15. India VIX Regime Filter (Fail closed if None and required)
+    if current_vix is None:
+        if config.get("require_vix", False):
+            return False, "India VIX data unavailable; new entries blocked by risk gate"
+    else:
         v_min = config.get("vix_min", 11.5)
         v_max = config.get("vix_max", 24.0)
         if current_vix < v_min:
@@ -342,79 +464,77 @@ def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays
         if current_vix > v_max:
             return False, f"India VIX ({current_vix:.1f}) above {v_max}: extreme volatility regime"
 
-    # 13. Market Window, Calendar & Expiry Shield
-    d_str = now_ist.strftime("%Y-%m-%d")
-    if now_ist.weekday() >= 5:
-        return False, f"Market is closed today (Weekend: {now_ist.strftime('%A')})"
-    if d_str in NSE_HOLIDAYS:
-        return False, f"Market is closed today (NSE Holiday: {NSE_HOLIDAYS[d_str]})"
-
+    # 16. Entry Windows & Session Hours (Time objects with seconds)
     t = now_ist.time()
-    t_str = t.strftime("%H:%M")
-    no_before = config.get("no_entries_before", "09:30")
-    no_after = config.get("no_entries_after", "14:45")
+    no_before_t = parse_time_obj(config.get("no_entries_before", "09:30:00"))
+    no_after_t = parse_time_obj(config.get("no_entries_after", "14:45:00"))
 
-    is_thursday = (now_ist.weekday() == 3)
-    if is_thursday:
-        no_after = config.get("expiry_cutoff", "13:45")
+    # Resolve instrument-specific expiry cutoff
+    exp_weekday, expiry_cutoff_t, _ = get_expiry_for_symbol(sym, ev_data)
+    day_names = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+    if day_names[now_ist.weekday()] == exp_weekday:
+        no_after_t = expiry_cutoff_t
 
     if t < OPEN:
-        return False, f"NSE market has not opened yet (opens at 09:15 IST)"
+        return False, f"NSE market has not opened yet (opens at {OPEN.strftime('%H:%M:%S')} IST)"
     if t >= CLOSE:
-        return False, f"NSE market is closed (closed at 15:30 IST)"
-    if t_str < no_before:
-        return False, f"Intraday entries not allowed before {no_before} IST (current time {t_str})"
-    if t_str > no_after:
-        return False, f"Intraday entries not allowed after {no_after} IST ({'Thursday Expiry Shield' if is_thursday else 'Normal Cutoff'})"
+        return False, f"NSE market is closed (closed at {CLOSE.strftime('%H:%M:%S')} IST)"
+    if t < no_before_t:
+        return False, f"Intraday entries not allowed before {no_before_t.strftime('%H:%M:%S')} IST (current time {t.strftime('%H:%M:%S')})"
+    if t > no_after_t:
+        return False, f"Intraday entries not allowed after {no_after_t.strftime('%H:%M:%S')} IST (Expiry/Session Cutoff)"
 
     return True, "All risk rules passed"
 
 
-def pre_trade_gate(order: dict, config: dict = None, now_ist: datetime.datetime = None) -> tuple:
+def pre_trade_gate(order: dict, config: dict = None, now_ist: datetime.datetime = None, vix=None) -> tuple:
     """Universal institutional pre-trade risk gate called before any order entry.
-    Used by cockpit, autopilot, and REST APIs.
+    Fails closed on any configuration, data, or events file error.
     """
+    # 1. Config loading (Fail Closed)
     if config:
         cfg = config
-    elif os.path.exists(DEFAULT_CONFIG_FILE):
-        try:
-            with open(DEFAULT_CONFIG_FILE, "r", encoding="utf-8-sig") as f:
-                cfg = json.load(f)
-        except Exception:
-            cfg = DEFAULT_CONFIG
     else:
-        cfg = DEFAULT_CONFIG
+        cfg_ok, loaded_cfg, cfg_err = load_config_fail_closed(DEFAULT_CONFIG_FILE)
+        if not cfg_ok:
+            return False, cfg_err
+        cfg = loaded_cfg
+
+    # 2. Events loading (Fail Closed)
+    ev_ok, ev_data, ev_err = load_events_fail_closed(DEFAULT_EVENTS_FILE)
+    if not ev_ok:
+        return False, ev_err
+
     now = now_ist or to_ist(datetime.datetime.now(datetime.timezone.utc))
 
-    sym = order.get("symbol", "")
-    
-    # 1. Event Guard check
-    guard = event_guard(sym, now)
-    if not guard.get("allowed", True):
-        return False, f"Event Guard Block: {guard.get('reason')}"
-
-    # 2. Options strategies restriction (C9)
+    # 3. Disallow options strategies in equity executor
     strat = str(order.get("strategy_id", "")).lower()
     if any(opt_kw in strat for opt_kw in ["straddle", "strangle", "iron_condor", "expiry_buying", "option"]):
-        return False, "C9 Restriction: Options strategies (13-16) are marked Analysis-Only. Execution blocked."
+        return False, "Options strategies (13-16) are marked Analysis-Only. Execution blocked."
 
-    # 3. Tradability check (3.9-C)
-    t2t_blocked = {"ADANIPOWER.NS", "RPOWER.NS"}
-    if sym in t2t_blocked:
-        return False, f"Tradability Check: {sym} is in Trade-to-Trade (T2T) series. Intraday MIS blocked."
+    # 4. Resolve VIX
+    vix_val = vix if vix is not None else fetch_india_vix()
 
-    # 4. Load today's broker state
-    todays_broker = {}
-    if os.path.exists(DEFAULT_BROKER_STATE):
+    # 5. Shared broker trade state
+    todays_broker = get_todays_trade_state(now, DEFAULT_BROKER_STATE)
+
+    return validate_order(order, cfg, now, todays_broker, current_vix=vix_val, events_data=ev_data)
+
+
+def is_verdict_stale(verdict_entry: dict, now_ist: datetime.datetime, max_age_seconds: int = 300) -> bool:
+    """Checks whether a recorded risk verdict is older than 5 minutes."""
+    ts = verdict_entry.get("timestamp")
+    if ts is None:
+        chk_str = verdict_entry.get("checked_at_ist")
+        if not chk_str:
+            return True
         try:
-            with open(DEFAULT_BROKER_STATE, "r", encoding="utf-8") as f:
-                b_data = json.load(f)
-            d_key = now.strftime("%Y-%m-%d")
-            todays_broker = b_data.get(d_key, {})
+            dt = datetime.datetime.strptime(chk_str, "%Y-%m-%d %H:%M:%S")
+            ts = dt.timestamp()
         except Exception:
-            pass
+            return True
 
-    return validate_order(order, cfg, now, todays_broker)
+    return (now_ist.timestamp() - ts) > max_age_seconds
 
 
 def main():
@@ -434,40 +554,41 @@ def main():
         print(f"ERROR: {args.orders} not found. Run /trader-budget first.")
         sys.exit(1)
 
-    with open(args.orders, "r", encoding="utf-8") as f:
-        order_data = json.load(f)
+    try:
+        with open(args.orders, "r", encoding="utf-8-sig") as f:
+            order_data = json.load(f)
+    except Exception as e:
+        print(f"ERROR: Failed to read orders file {args.orders}: {e}")
+        sys.exit(1)
 
     orders = order_data.get("orders", [])
     if not orders:
         print("No orders found to check.")
         sys.exit(1)
 
-    cfg = DEFAULT_CONFIG.copy()
-    if os.path.exists(args.config):
-        try:
-            with open(args.config, "r", encoding="utf-8") as f:
-                cfg.update(json.load(f))
-        except Exception:
-            pass
+    cfg_ok, cfg, cfg_err = load_config_fail_closed(args.config)
+    if not cfg_ok:
+        print(f"ERROR: {cfg_err}")
+        sys.exit(1)
 
-    b_state = {}
-    if os.path.exists(DEFAULT_BROKER_STATE):
-        try:
-            with open(DEFAULT_BROKER_STATE, "r", encoding="utf-8") as f:
-                b_state = json.load(f).get(now_ist.strftime("%Y-%m-%d"), {})
-        except Exception:
-            pass
+    ev_ok, ev_data, ev_err = load_events_fail_closed(DEFAULT_EVENTS_FILE)
+    if not ev_ok:
+        print(f"ERROR: {ev_err}")
+        sys.exit(1)
 
-    vix_val = args.vix or fetch_india_vix()
+    b_state = get_todays_trade_state(now_ist, DEFAULT_BROKER_STATE)
+    vix_val = args.vix if args.vix is not None else fetch_india_vix()
 
     verdicts = []
     overall_pass = True
 
-    vix_str = f" | India VIX: {vix_val:.1f}" if vix_val else ""
+    vix_str = f" | India VIX: {vix_val:.1f}" if vix_val is not None else ""
     print(f"Checking {len(orders)} order(s) against NSE risk rules as of {now_ist.strftime('%Y-%m-%d %H:%M:%S IST')}{vix_str}...")
+
+    d_str = now_ist.strftime("%Y-%m-%d")
     for idx, ord_spec in enumerate(orders, 1):
-        fp = compute_order_fingerprint(ord_spec)
-        passed, reason = validate_order(ord_spec, cfg, now_ist, b_state, current_vix=vix_val)
+        fp = compute_order_fingerprint(ord_spec, d_str)
+        passed, reason = validate_order(ord_spec, cfg, now_ist, b_state, current_vix=vix_val, events_data=ev_data)
         v_entry = {
             "order_index": idx,
             "fingerprint": fp,
@@ -476,6 +597,7 @@ def main():
             "qty": ord_spec.get("qty"),
             "verdict": "PASS" if passed else "BLOCK",
             "reason": reason,
+            "timestamp": now_ist.timestamp(),
             "checked_at_ist": now_ist.strftime("%Y-%m-%d %H:%M:%S")
         }
         verdicts.append(v_entry)
@@ -486,14 +608,12 @@ def main():
         print(f"  {status_tag} Order #{idx}: {ord_spec.get('side')} {ord_spec.get('qty')} {ord_spec.get('symbol')} -> {reason}")
 
     if not args.no_write:
-        os.makedirs(os.path.dirname(os.path.abspath(DEFAULT_RISK_STATE)), exist_ok=True)
         risk_output = {
-            "date": now_ist.strftime("%Y-%m-%d"),
+            "date": d_str,
             "overall_status": "READY" if overall_pass else "BLOCKED",
             "verdicts": verdicts
         }
-        with open(DEFAULT_RISK_STATE, "w", encoding="utf-8") as f:
-            json.dump(risk_output, f, indent=2)
+        save_json(DEFAULT_RISK_STATE, risk_output)
         print(f"Recorded risk verdict to {DEFAULT_RISK_STATE}")
 
     if args.json:

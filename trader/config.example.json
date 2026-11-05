@@ -1,0 +1,37 @@
+{
+  "broker": "paper",
+  "exchange": "NSE",
+  "product": "MIS",
+  "budget": 100000.0,
+  "cash_buffer_pct": 10.0,
+  "max_position_pct": 50.0,
+  "max_order_inr": 50000.0,
+  "min_order_inr": 1000.0,
+  "max_loss_per_trade_inr": 1000.0,
+  "max_daily_loss_inr": 3000.0,
+  "max_trades_per_day": 3,
+  "max_consecutive_losses": 2,
+  "max_trades_per_sector": 1,
+  "profit_lock_trigger_inr": 2500.0,
+  "profit_lock_floor_inr": 1500.0,
+  "min_reward_risk": 1.5,
+  "require_stop": true,
+  "no_entries_before": "09:30",
+  "no_entries_after": "14:45",
+  "flat_by": "15:10",
+  "expiry_cutoff": "13:45",
+  "vix_min": 11.5,
+  "vix_max": 24.0,
+  "blocked": [],
+  "watchlist": [
+    "RELIANCE.NS",
+    "TCS.NS",
+    "INFY.NS",
+    "JIOFIN.NS",
+    "HDFCBANK.NS"
+  ],
+  "telegram_bot_token": "YOUR_TELEGRAM_BOT_TOKEN_OR_ENV_VAR",
+  "telegram_chat_id": "YOUR_TELEGRAM_CHAT_ID_OR_ENV_VAR",
+  "discord_webhook": "YOUR_DISCORD_WEBHOOK_OR_ENV_VAR"
+}
+

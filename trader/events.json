@@ -1,26 +1,48 @@
 {
   "events": [
     {
+      "id": "rbi_mpc_feb26",
+      "type": "rbi_policy",
+      "title": "RBI Monetary Policy Committee (MPC) Rate Decision",
+      "date": "2026-02-06",
+      "start_time": "09:45",
+      "end_time": "10:45",
+      "scope": "market",
+      "action": "BLOCK_ALL_ENTRIES",
+      "description": "RBI Governor policy statement & repo rate announcement. Extreme whipsaw risk."
+    },
+    {
       "id": "rbi_mpc_dec26",
       "type": "rbi_policy",
       "title": "RBI Monetary Policy Committee Announcement",
       "date": "2026-12-04",
-      "time": "10:00",
+      "start_time": "09:45",
+      "end_time": "10:30",
       "scope": "market",
-      "action": "block_new",
-      "before_min": 15,
-      "after_min": 30
+      "action": "BLOCK_ALL_ENTRIES",
+      "description": "RBI Monetary Policy statement."
     },
     {
-      "id": "rbi_mpc_feb26",
-      "type": "rbi_policy",
-      "title": "RBI Monetary Policy Committee Announcement",
-      "date": "2026-02-06",
-      "time": "10:00",
+      "id": "union_budget_2026",
+      "type": "union_budget",
+      "title": "Union Budget Presentation",
+      "date": "2026-02-01",
+      "start_time": "10:45",
+      "end_time": "13:30",
       "scope": "market",
-      "action": "block_new",
-      "before_min": 15,
-      "after_min": 30
+      "action": "BLOCK_ALL_ENTRIES",
+      "description": "Finance Minister Union Budget speech."
+    },
+    {
+      "id": "union_budget_2027",
+      "type": "union_budget",
+      "title": "Union Budget Presentation",
+      "date": "2027-02-01",
+      "start_time": "10:45",
+      "end_time": "13:30",
+      "scope": "market",
+      "action": "BLOCK_ALL_ENTRIES",
+      "description": "Union Budget presentation day."
     },
     {
       "id": "tcs_q3_results",
@@ -29,7 +51,8 @@
       "date": "2026-11-06",
       "scope": "symbol",
       "symbols": ["TCS.NS"],
-      "action": "block_symbol_day"
+      "action": "BLOCK_SYMBOL_TODAY",
+      "description": "Quarterly earnings announcement blackout."
     },
     {
       "id": "muhurat_2026",
@@ -37,50 +60,22 @@
       "title": "Diwali Muhurat Trading Session",
       "date": "2026-11-08",
       "scope": "market",
-      "action": "block_new"
-    },
-    {
-      "id": "union_budget_2026",
-      "type": "union_budget",
-      "title": "Union Budget Presentation",
-      "date": "2026-02-01",
-      "time": "11:00",
-      "scope": "market",
-      "action": "block_new"
-    },
-    {
-      "id": "union_budget_2027",
-      "type": "union_budget",
-      "title": "Union Budget Presentation",
-      "date": "2027-02-01",
-      "time": "11:00",
-      "scope": "market",
-      "action": "block_new"
+      "action": "BLOCK_ALL_ENTRIES",
+      "description": "Special Muhurat evening trading session."
     }
   ],
   "rules": {
     "fo_expiry": {
       "enabled": true,
-      "weekday": "THURSDAY",
-      "action": "reduce_size",
-      "size_factor": 0.5
-    },
-    "results_day_before_and_after": true
-  },
-  "macro_blackouts": [
-    {
-      "name": "RBI Monetary Policy Committee (MPC) Rate Decision",
-      "date": "2026-02-06",
-      "start_time": "09:45",
-      "end_time": "10:45",
-      "description": "RBI Governor policy statement & repo rate announcement. Extreme whipsaw risk."
-    },
-    {
-      "name": "Union Budget Presentation",
-      "date": "2026-02-01",
-      "start_time": "10:45",
-      "end_time": "13:30",
-      "description": "Finance Minister Union Budget speech."
+      "size_factor": 0.5,
+      "cutoff_time": "13:45",
+      "weekdays": {
+        "default": "THURSDAY",
+        "^NSEBANK": "WEDNESDAY",
+        "BANKNIFTY": "WEDNESDAY",
+        "^BSESN": "FRIDAY",
+        "SENSEX": "FRIDAY"
+      }
     }
-  ]
+  }
 }

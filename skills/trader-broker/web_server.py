@@ -33,7 +33,17 @@ sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-analyst"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-risk"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from common import FLAT_BY, IST_OFFSET, load_json, resolve_path, save_json, to_ist, to_tv_symbol
+from common import (
+    FLAT_BY,
+    IST_OFFSET,
+    load_json,
+    record_closed_trade,
+    record_placed_trade,
+    resolve_path,
+    save_json,
+    to_ist,
+    to_tv_symbol,
+)
 
 try:
     import alerts
@@ -470,7 +480,7 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
             requested_qty = int(data.get("qty", 1))
             qty = min(requested_qty, allowed_qty)
 
-            # C4: Universal Pre-Trade Risk Gate
+            # C4: Universal Pre-Trade Risk Gate (Fail Closed)
             order_candidate = {
                 "symbol": sym,
                 "side": side,
@@ -481,12 +491,14 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
                 "strategy_id": strategy_id
             }
             try:
-                gate_ok, gate_msg = risk_check.pre_trade_gate(order_candidate, cfg, now_ist)
+                vix_val = risk_check.fetch_india_vix()
+                gate_ok, gate_msg = risk_check.pre_trade_gate(order_candidate, cfg, now_ist, vix=vix_val)
                 if not gate_ok:
                     self.send_json({"success": False, "message": f"Risk Gate Block: {gate_msg}"}, 403)
                     return
             except Exception as e:
-                pass
+                self.send_json({"success": False, "message": f"Risk Gate Failure: {e}"}, 403)
+                return
 
             port = load_json(PORTFOLIO_FILE)
             holdings = port.get("holdings", {})
@@ -512,6 +524,9 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
             }
             port["holdings"] = holdings
             save_json(PORTFOLIO_FILE, port)
+
+            # Record in shared broker.json trade state
+            record_placed_trade(order_candidate, now_ist)
 
             alerts.dispatch_push_notification(
                 f"Paper Trade Executed: {side} {sym}",
@@ -579,6 +594,9 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
             port["cash"] = round(port.get("cash", 0) + margin_returned + gross_pnl, 2)
             port["holdings"] = holdings
             save_json(PORTFOLIO_FILE, port)
+
+            # Record in shared broker.json trade state
+            record_closed_trade(sym, exit_p, gross_pnl, now_ist)
 
             alerts.dispatch_push_notification(
                 f"Trade Closed: {sym}",

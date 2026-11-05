@@ -12,3 +12,14 @@ Thumbs.db
 # Local databases & run caches
 *.log
 
+# Secrets and active runtime state
+trader/config.json
+trader/state/
+trader/portfolio.json
+trader/orders.json
+trader/plan.json
+trader/alerts.json
+trader/prices.json
+trader/data/*.db
+.env
+

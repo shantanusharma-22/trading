@@ -35,13 +35,21 @@ sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-entry"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-exit"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-risk"))
 
-from common import UA, load_json, save_json, to_ist
+from common import (
+    UA,
+    load_json,
+    record_closed_trade,
+    record_placed_trade,
+    save_json,
+    to_ist,
+)
 
 try:
     import alerts
     import cpr
     import scan
     import strategies
+    import check as risk_check
 except ImportError:
     pass
 
@@ -307,6 +315,30 @@ class AutoTraderEngine:
             self.add_log(f"⚠️ Sizer rejected trade on {sym}: Risk per share (Rs {risk_per_share:.2f}) exceeds max loss limit (Rs {max_loss:.2f})")
             return
 
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        now_ist = to_ist(now_utc)
+
+        # C4: Universal Pre-Trade Risk Gate (Fail Closed)
+        order_candidate = {
+            "symbol": sym,
+            "side": side,
+            "qty": shares,
+            "entry_price": entry,
+            "stop_loss_price": stop,
+            "take_profit_price": target,
+            "strategy_id": setup.get("strategy_id", self.active_strategy)
+        }
+
+        try:
+            vix_val = risk_check.fetch_india_vix() if hasattr(risk_check, "fetch_india_vix") else None
+            gate_ok, gate_msg = risk_check.pre_trade_gate(order_candidate, cfg, now_ist, vix=vix_val)
+            if not gate_ok:
+                self.add_log(f"🛑 Risk Gate Blocked {sym}: {gate_msg}")
+                return
+        except Exception as e:
+            self.add_log(f"🛑 Risk Gate Failure on {sym}: {e}")
+            return
+
         # Margin calculation (5x MIS Intraday leverage)
         margin_required = round((shares * entry) / 5.0, 2)
 
@@ -330,10 +362,13 @@ class AutoTraderEngine:
             "target": target,
             "strategy": setup.get("strategy_name", self.active_strategy),
             "margin_used": margin_required,
-            "placed_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "placed_at": now_ist.strftime("%Y-%m-%d %H:%M:%S")
         }
         port["holdings"] = holdings
         save_json(PORTFOLIO_FILE, port)
+
+        # Record in shared broker.json trade state
+        record_placed_trade(order_candidate, now_ist)
 
         self.trades_today += 1
         self.state = "IN_POSITION"
@@ -428,6 +463,9 @@ class AutoTraderEngine:
                     f"Exited {h['qty']} shares @ Rs {exit_p:.2f} | Net P&L: Rs {pnl:+,.2f}"
                 )
 
+                # Record in shared broker.json trade state
+                record_closed_trade(sym, exit_p, pnl, now_ist)
+
                 # Persist trade to SQLite Journal
                 try:
                     import journal
@@ -468,6 +506,9 @@ class AutoTraderEngine:
             pnl = h.get("pnl", 0)
             port["cash"] = round(port.get("cash", 0) + margin_ret + pnl, 2)
             self.add_log(f"Square-off: Flattened {sym} MIS position. Net P&L: Rs {pnl:+,.2f}")
+            now_ist = alerts.to_ist(datetime.datetime.now(datetime.timezone.utc))
+            cur_p = h.get("current_price", h.get("entry_price", 0.0))
+            record_closed_trade(sym, cur_p, pnl, now_ist)
 
             # Persist to journal
             try:

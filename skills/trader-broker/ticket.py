@@ -22,7 +22,15 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import IST_OFFSET, resolve_path, to_ist
+from common import (
+    IST_OFFSET,
+    compute_order_fingerprint,
+    load_json,
+    record_placed_trade,
+    resolve_path,
+    save_json,
+    to_ist,
+)
 
 DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
 DEFAULT_RISK_STATE = resolve_path("trader/state/risk.json")
@@ -30,9 +38,8 @@ DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
 DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
 
 
-def compute_fingerprint(order: dict) -> str:
-    raw = f"{order.get('symbol')}:{order.get('side')}:{order.get('qty')}:{order.get('entry_price')}:{order.get('stop_loss_price')}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+def compute_fingerprint(order: dict, trade_date: str = None) -> str:
+    return compute_order_fingerprint(order, trade_date)
 
 
 def format_zerodha_payload(order: dict) -> str:
@@ -150,52 +157,45 @@ def cmd_approve(args):
         print(f"ERROR: Invalid order index {args.index}")
         sys.exit(1)
 
-    ord_spec = orders[idx]
-    fp = compute_fingerprint(ord_spec)
+    now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
+    d_str = now_ist.strftime("%Y-%m-%d")
 
-    # Check risk
+    ord_spec = orders[idx]
+    fp = compute_fingerprint(ord_spec, d_str)
+
+    # Check risk verdict
     if not os.path.exists(DEFAULT_RISK_STATE):
         print("ERROR: Orders must pass /trader-risk before approval.")
         sys.exit(1)
 
-    with open(DEFAULT_RISK_STATE, "r", encoding="utf-8") as f:
+    with open(DEFAULT_RISK_STATE, "r", encoding="utf-8-sig") as f:
         v_list = json.load(f).get("verdicts", [])
         v_map = {v.get("fingerprint"): v for v in v_list}
 
     rv = v_map.get(fp)
-    if not rv or rv.get("verdict") != "PASS":
+    if rv is None:
+        print(f"ERROR: No risk verdict found for Order #{args.index} (fingerprint: {fp}). Re-run /trader-risk.")
+        sys.exit(1)
+
+    if rv.get("verdict") != "PASS":
         print(f"ERROR: Order #{args.index} was BLOCKED by risk check: {rv.get('reason', 'no record')}")
         sys.exit(1)
 
-    # Record in broker state
-    now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
-    d_str = now_ist.strftime("%Y-%m-%d")
+    # Check for stale verdict (> 5 minutes / 300 seconds)
+    v_ts = rv.get("timestamp")
+    if v_ts and (now_ist.timestamp() - v_ts) > 300:
+        print(f"ERROR: Risk verdict for Order #{args.index} is older than 5 minutes ({int((now_ist.timestamp() - v_ts)/60)}m old). Re-run /trader-risk.")
+        sys.exit(1)
 
-    b_state = {}
-    if os.path.exists(DEFAULT_BROKER_STATE):
-        try:
-            with open(DEFAULT_BROKER_STATE, "r", encoding="utf-8") as f:
-                b_state = json.load(f)
-        except Exception:
-            pass
+    # Check idempotency: refuse second approval of same order today
+    b_data = load_json(DEFAULT_BROKER_STATE, {})
+    day_entry = b_data.get(d_str, {})
+    if any(o.get("fingerprint") == fp for o in day_entry.get("orders_placed", [])):
+        print(f"ERROR: Order #{args.index} has already been approved and recorded.")
+        sys.exit(1)
 
-    day_entry = b_state.setdefault(d_str, {"trades_today": [], "orders_placed": []})
-    day_entry["orders_placed"].append({
-        "order": ord_spec,
-        "approved_at_ist": now_ist.strftime("%H:%M:%S"),
-        "status": "APPROVED",
-        "fingerprint": fp
-    })
-    day_entry["trades_today"].append({
-        "symbol": ord_spec["symbol"],
-        "side": ord_spec["side"],
-        "qty": ord_spec["qty"],
-        "max_loss": ord_spec.get("actual_loss_at_stop", 0.0)
-    })
-
-    os.makedirs(os.path.dirname(os.path.abspath(DEFAULT_BROKER_STATE)), exist_ok=True)
-    with open(DEFAULT_BROKER_STATE, "w", encoding="utf-8") as f:
-        json.dump(b_state, f, indent=2)
+    # Record in shared broker state
+    record_placed_trade(ord_spec, now_ist)
 
     print(f"===> [ORDER #{args.index} APPROVED & RECORDED]")
     print(f"     Placed order for {ord_spec['qty']} shares of {ord_spec['symbol']} at Rs {ord_spec['entry_price']:,.2f}")
