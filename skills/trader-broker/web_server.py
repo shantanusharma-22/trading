@@ -676,7 +676,7 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
 
         if p == "/api/notify/test":
             try:
-                alerts.dispatch_push_notification("Antigravity Dashboard Ping", "Test notification from your interactive web console.")
+                alerts.dispatch_push_notification("Vyapar AI Dashboard Ping", "Test notification from your interactive web console.")
                 self.send_json({"success": True, "message": "Notification dispatched to Telegram/Discord."})
             except Exception as e:
                 self.send_json({"success": False, "message": str(e)}, 500)
@@ -693,10 +693,10 @@ def start_server(port=8765, open_browser=True):
     httpd = ThreadingHTTPServer(addr, TradingDashboardHandler)
     url = f"http://127.0.0.1:{port}"
     print("\n" + "=" * 65)
-    print(" ANTIGRAVITY INDIAN DAY TRADER - INTERACTIVE WEB CONSOLE ")
+    print(" VYAPAR AI - SMARTER TRADES FOR BHARAT (NSE / BSE) ")
     print("=" * 65)
     print(f"  • Local Web URL:    {url}")
-    print(f"  • Operating Mode:   PAPER TRADING (NSE Equities)")
+    print(f"  • Operating Mode:   PAPER TRADING (Zero Capital Risk)")
     print(f"  • Press Ctrl+C in terminal to stop web server.")
     print("=" * 65 + "\n", flush=True)
 
@@ -709,12 +709,12 @@ def start_server(port=8765, open_browser=True):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping Indian Day Trader Web Server. Goodbye!")
+        print("\nStopping Vyapar AI Web Server. Goodbye!")
         httpd.server_close()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Antigravity Interactive Web Command Center")
+    parser = argparse.ArgumentParser(description="Vyapar AI Interactive Web Command Center")
     parser.add_argument("--port", type=int, default=8765, help="Port to bind (default: 8765)")
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open browser")
     args = parser.parse_args()

@@ -177,7 +177,7 @@ def cmd_ui(port=8765, open_browser=True):
 
 def interactive_menu():
     while True:
-        print_header("ANTIGRAVITY INDIAN DAY TRADER - MASTER CONSOLE")
+        print_header("VYAPAR AI - SMARTER TRADES FOR BHARAT")
         cfg = load_json(CONFIG_FILE)
         print(f" Capital: Rs {cfg.get('budget', 100000):,.0f} | Risk/Trade: Rs {cfg.get('max_loss_per_trade_inr', 1000):,.0f} | Broker: {cfg.get('broker', 'paper').upper()}")
         print(f" Watchlist: {', '.join(cfg.get('watchlist', []))}")
@@ -226,7 +226,7 @@ def interactive_menu():
         elif choice == "13":
             cmd_strategies()
         elif choice in ("0", "q", "exit"):
-            print("\nExiting Indian Day Trader Console. Happy trading!\n")
+            print("\nExiting Vyapar AI Console. Smarter Trades for Bharat!\n")
             break
         else:
             print("\nInvalid choice, please select 0 to 13.")

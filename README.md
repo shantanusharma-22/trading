@@ -1,13 +1,18 @@
-# Antigravity Indian Day Trader Suite (NSE / BSE)
+<div align="center">
+  <img src="docs/vyapar_ai_logo.png" alt="Vyapar AI - Smarter Trades for Bharat" width="620" style="border-radius: 12px; margin-bottom: 12px;"/>
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Dependencies: Zero](https://img.shields.io/badge/Dependencies-Zero%20(Standard%20Library)-brightgreen.svg)]()
-[![Market: NSE / BSE](https://img.shields.io/badge/Exchanges-NSE%20%7C%20BSE-orange.svg)]()
-[![Brokers: Multi-Broker](https://img.shields.io/badge/Brokers-Paper%20%7C%20Zerodha%20%7C%20Angel%20%7C%20Shoonya-blueviolet.svg)]()
-[![AI Providers: Universal](https://img.shields.io/badge/AI%20Support-Claude%20%7C%20Gemini%20%7C%20OpenAI%20%7C%20Cursor%20%7C%20DeepSeek-cyan.svg)]()
+  # Vyapar AI — Smarter Trades for Bharat
+  ### Institutional Algorithmic Day Trading, Execution & Quantitative Research Suite (NSE / BSE)
 
-Institutional-grade algorithmic day trading, autonomous execution, and quantitative research platform engineered specifically for the **National Stock Exchange of India (NSE)** and **Bombay Stock Exchange (BSE)**.
+  [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Dependencies: Zero](https://img.shields.io/badge/Dependencies-Zero%20(Standard%20Library)-brightgreen.svg)]()
+  [![Market: NSE / BSE](https://img.shields.io/badge/Exchanges-NSE%20%7C%20BSE-orange.svg)]()
+  [![Brokers: Multi-Broker](https://img.shields.io/badge/Brokers-Paper%20%7C%20Zerodha%20%7C%20Angel%20%7C%20Shoonya-blueviolet.svg)]()
+  [![AI Providers: Universal](https://img.shields.io/badge/AI%20Support-Claude%20%7C%20Gemini%20%7C%20OpenAI%20%7C%20Cursor%20%7C%20DeepSeek-cyan.svg)]()
+</div>
+
+**Vyapar AI** is an institutional-grade algorithmic day trading, autonomous execution, and quantitative research platform engineered specifically for the **National Stock Exchange of India (NSE)** and **Bombay Stock Exchange (BSE)**.
 
 Built with **100% Python Standard Library** (zero mandatory `pip` dependencies), local offline **TradingView Lightweight Charts v4.2.0**, institutional pre-trade risk gates, statutory SEBI charges calculation, multi-broker failover routing, and an open skill architecture compatible with **all AI models and agent frameworks**.
 
@@ -93,7 +98,7 @@ python main.py
 This opens the interactive terminal orchestrator:
 ```
 ============================================================
-       ANTIGRAVITY INDIAN DAY TRADER - MASTER CONSOLE       
+           VYAPAR AI - SMARTER TRADES FOR BHARAT            
 ============================================================
  Capital: Rs 100,000 | Risk/Trade: Rs 1,000 | Broker: PAPER
  Watchlist: RELIANCE.NS, TCS.NS, INFY.NS, JIOFIN.NS, HDFC.NS
@@ -299,7 +304,7 @@ The platform implements a multi-layer risk hierarchy ensuring capital preservati
 
 ## Statutory SEBI Taxes & Net P&L Engine
 
-Unlike standard international trading software, Antigravity features a built-in Indian tax engine (`skills/trader-budget/tax_calculator.py` and `skills/trader-broker/journal.py`) that calculates true net take-home returns:
+Unlike standard international trading software, **Vyapar AI** features a built-in Indian tax engine (`skills/trader-budget/tax_calculator.py` and `skills/trader-broker/journal.py`) that calculates true net take-home returns:
 
 | Charge | Statutory Rate | Applied On |
 | :--- | :--- | :--- |

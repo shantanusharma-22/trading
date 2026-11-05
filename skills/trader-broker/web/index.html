@@ -3,27 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Antigravity · NSE · BSE Intraday Trading Platform</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <title>Vyapar AI · Smarter Trades for Bharat · NSE · BSE</title>
+  <link rel="icon" type="image/png" href="/static/vyapar_ai_logo.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap">
   <script src="/static/lightweight-charts.standalone.production.js"></script>
   <style>
     :root {
-      --bg: #0b0e14;
-      --card-bg: #11151d;
-      --card-cockpit: #151a23;
-      --card-chart: #0e1219;
-      --border: #232a38;
-      --border-light: #2c3445;
-      --text: #e6e9ef;
-      --muted: #8f98aa;
-      --text-sub: #c9cfdb;
-      --text-dim: #6f7a8f;
-      --emerald: #34d399;
-      --green-btn: #10b981;
-      --rose: #fb7185;
-      --red-btn: #e5484d;
-      --blue: #3b82f6;
-      --blue-light: #93c5fd;
+      /* Vyapar AI Official Brand Identity Palette */
+      --brand-navy: #0c1b2f;           /* Official logo navy base */
+      --brand-navy-dark: #07111e;      /* Deep obsidian backdrop */
+      --brand-navy-surface: #0f223a;   /* Primary card surface */
+      --brand-navy-cockpit: #122640;   /* Elevated cockpit container */
+      --brand-orange: #f07d1a;         /* Saffron orange accent */
+      --brand-orange-light: #ff9838;   /* Warm saffron highlight */
+      --brand-orange-glow: rgba(240, 125, 26, 0.35); /* Focus & active glow */
+      --brand-orange-subtle: rgba(240, 125, 26, 0.12); /* Soft pill tint */
+
+      --bg: #07111e;
+      --card-bg: #0c1b2f;
+      --card-cockpit: #122640;
+      --card-chart: #091524;
+      --border: #1a324f;
+      --border-light: #23436a;
+      
+      --text: #f8fafc;
+      --text-sub: #cbd5e1;
+      --text-dim: #94a3b8;
+      --muted: #8195af;
+      
+      --emerald: #10b981;
+      --green-btn: #059669;
+      --rose: #f43f5e;
+      --red-btn: #e11d48;
+      
+      --blue: #f07d1a;
+      --blue-light: #ff9838;
       --amber: #f59e0b;
       --yellow: #fbbf24;
       --purple: #8b5cf6;
@@ -41,10 +55,10 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
-    a { color: #7fb0ff; text-decoration: none; }
-    a:hover { color: #b3cfff; }
+    a { color: var(--brand-orange-light); text-decoration: none; }
+    a:hover { color: #ffbe76; }
     button, select, input { font-family: inherit; font-size: inherit; }
-    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--brand-orange); outline-offset: 2px; }
     .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
     
     @keyframes pulse {
@@ -230,12 +244,12 @@
     }
     .stock-pill:hover {
       border-color: var(--border-light);
-      background: #151a24;
+      background: #10243e;
     }
     .stock-pill.active {
-      background: #16213a;
-      border-color: var(--blue);
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+      background: #132a48;
+      border-color: var(--brand-orange);
+      box-shadow: 0 0 14px var(--brand-orange-glow);
     }
     .badge-exchange {
       font-size: 9px;
@@ -589,14 +603,24 @@
 
   <!-- ==================== HEADER ==================== -->
   <header>
-    <div class="brand-wrap">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-        <rect x="1" y="1" width="24" height="24" rx="7" fill="none" stroke="#3b82f6" stroke-width="1.5"></rect>
-        <path d="M7 17 L11 11 L14 14 L19 8" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    <div class="brand-wrap" style="display: flex; align-items: center; gap: 11px;">
+      <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 9px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <rect width="100" height="100" rx="24" fill="#0C1B2F"/>
+        <!-- Left White Arm of V -->
+        <path d="M26 28 L47 76 L55 76 L35 28 Z" fill="#FFFFFF"/>
+        <!-- Right Orange Arm of V -->
+        <path d="M47 76 L74 33 L67 29 L43 72 Z" fill="#F07D1A"/>
+        <!-- Node Pip Outer Concentric Ring & Target Pip -->
+        <circle cx="73" cy="30" r="13" stroke="#F07D1A" stroke-width="2.5" fill="none" opacity="0.6"/>
+        <circle cx="73" cy="30" r="8" fill="#F07D1A"/>
+        <circle cx="73" cy="30" r="3" fill="#0C1B2F"/>
       </svg>
-      <div style="display: flex; flex-direction: column">
-        <span class="brand-title">ANTIGRAVITY</span>
-        <span class="brand-sub">NSE · BSE Intraday</span>
+      <div style="display: flex; flex-direction: column; justify-content: center;">
+        <div style="display: flex; align-items: baseline; gap: 4px; line-height: 1;">
+          <span style="font-size: 19px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px;">Vyapar</span>
+          <span style="font-size: 19px; font-weight: 800; color: #F07D1A; letter-spacing: -0.3px;">AI</span>
+        </div>
+        <span style="font-size: 8px; font-weight: 600; color: #8E9DB3; letter-spacing: 1.3px; text-transform: uppercase; margin-top: 3px;">Smarter Trades for Bharat</span>
       </div>
     </div>
 
@@ -849,7 +873,7 @@
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
             <div style="display: flex; flex-direction: column; gap: 2px">
               <a href="#" onclick="openStockProfile(activeSymbol); return false;" style="font-weight: 600; font-size: 15px; color: var(--text)">
-                <span id="cockpitStockSymbol">TCS</span> <span style="font-size: 11px; color: #7fb0ff">· view profile ⓘ</span>
+                <span id="cockpitStockSymbol">TCS</span> <span style="font-size: 11px; color: var(--brand-orange-light)">· view profile ⓘ</span>
               </a>
               <span style="font-size: 12px; color: var(--muted)" id="cockpitStockName">Tata Consultancy Services Ltd</span>
             </div>
@@ -1015,7 +1039,7 @@
               <option value="nifty50">Nifty 50</option>
               <option value="watchlist">Watchlist</option>
             </select>
-            <button type="button" id="btnToggleAutopilot" onclick="toggleAutopilot()" style="height: 32px; padding: 0 12px; background: #1f2633; border: 1px solid var(--border-light); border-radius: 6px; color: var(--text); cursor: pointer; font-size: 12px">
+            <button type="button" id="btnToggleAutopilot" onclick="toggleAutopilot()" style="height: 32px; padding: 0 14px; background: var(--brand-orange); border: 0; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; font-size: 12px; box-shadow: 0 2px 8px var(--brand-orange-glow)">
               Start
             </button>
           </div>
@@ -1205,7 +1229,7 @@
     <!-- Profile Header -->
     <div style="padding: 20px 22px 14px; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid var(--border)">
       <div style="display: flex; align-items: center; gap: 12px">
-        <div id="profileAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: #16213a; border: 1px solid var(--blue); display: grid; place-items: center; font-weight: 700; color: #93c5fd; font-size: 16px;">
+        <div id="profileAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: #0c1b2f; border: 1.5px solid var(--brand-orange); display: grid; place-items: center; font-weight: 700; color: #ffffff; font-size: 16px; box-shadow: 0 0 10px var(--brand-orange-glow);">
           TC
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
@@ -1392,7 +1416,7 @@
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
         <button type="button" class="btn-action" onclick="closeConfigModal()">Cancel</button>
-        <button type="button" onclick="saveSystemConfig()" style="height: 38px; padding: 0 16px; background: var(--blue); border: 0; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer;">
+        <button type="button" onclick="saveSystemConfig()" style="height: 38px; padding: 0 16px; background: var(--brand-orange); border: 0; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px var(--brand-orange-glow);">
           Save Settings
         </button>
       </div>
@@ -1504,26 +1528,26 @@
       width: container.clientWidth,
       height: container.clientHeight || 440,
       layout: {
-        background: { type: 'solid', color: '#0e1219' },
-        textColor: '#8f98aa',
+        background: { type: 'solid', color: '#091524' },
+        textColor: '#8195af',
         fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
         fontSize: 11
       },
       grid: {
-        vertLines: { color: '#171c26' },
-        horzLines: { color: '#171c26' }
+        vertLines: { color: '#102238' },
+        horzLines: { color: '#102238' }
       },
       crosshair: {
         mode: LightweightCharts.CrosshairMode.Normal,
-        vertLine: { color: '#3a4560', width: 1, style: 2 },
-        horzLine: { color: '#3a4560', width: 1, style: 2 }
+        vertLine: { color: '#38557a', width: 1, style: 2 },
+        horzLine: { color: '#38557a', width: 1, style: 2 }
       },
       rightPriceScale: {
-        borderColor: '#232a38',
+        borderColor: '#1a324f',
         scaleMargins: { top: 0.08, bottom: 0.22 }
       },
       timeScale: {
-        borderColor: '#232a38',
+        borderColor: '#1a324f',
         timeVisible: true,
         secondsVisible: false
       }
@@ -2305,7 +2329,7 @@
         badge.innerText = "STANDBY · paper stage";
         badge.style.color = "var(--amber)";
         btn.innerText = "Start";
-        btn.style.background = "#1f2633";
+        btn.style.background = "var(--brand-orange)";
       }
 
       if (count && data.trades_today !== undefined) {
