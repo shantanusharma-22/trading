@@ -19,15 +19,13 @@ import os
 import sys
 import urllib.request
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import UA, normalize_symbol
+
 YAHOO_HOST = "query1.finance.yahoo.com"
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
 
 
 def fetch_historical_candles(symbol: str, range_period="6mo", interval="1d", offline=None):

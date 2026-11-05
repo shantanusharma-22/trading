@@ -25,37 +25,19 @@ import os
 import sys
 import urllib.request
 
-NSE_HOLIDAYS = {
-    "2026-01-26": "Republic Day",
-    "2026-03-03": "Holi",
-    "2026-03-20": "Id-Ul-Fitr",
-    "2026-04-03": "Good Friday",
-    "2026-04-14": "Dr. Ambedkar Jayanti",
-    "2026-05-01": "Maharashtra Day",
-    "2026-05-27": "Bakri Id",
-    "2026-06-26": "Muharram",
-    "2026-08-15": "Independence Day",
-    "2026-09-16": "Milad-un-Nabi",
-    "2026-10-02": "Mahatma Gandhi Jayanti",
-    "2026-10-20": "Dussehra",
-    "2026-11-08": "Diwali Laxmi Pujan",
-    "2026-11-24": "Gurunanak Jayanti",
-    "2026-12-25": "Christmas Day",
-    "2027-01-26": "Republic Day",
-    "2027-03-10": "Id-Ul-Fitr",
-    "2027-03-22": "Holi",
-    "2027-03-26": "Good Friday",
-    "2027-04-14": "Dr. Ambedkar Jayanti",
-    "2027-05-01": "Maharashtra Day",
-    "2027-05-17": "Bakri Id",
-    "2027-06-16": "Muharram",
-    "2027-08-15": "Independence Day",
-    "2027-10-02": "Mahatma Gandhi Jayanti",
-    "2027-10-09": "Dussehra",
-    "2027-10-29": "Diwali Laxmi Pujan",
-    "2027-11-14": "Gurunanak Jayanti",
-    "2027-12-25": "Christmas Day",
-}
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import (
+    CLOSE,
+    IST_OFFSET,
+    NSE_HOLIDAYS,
+    OPEN,
+    ist_to_utc,
+    resolve_path,
+    to_ist,
+)
 
 SECTOR_MAP = {
     "HDFCBANK.NS": "BANKING", "ICICIBANK.NS": "BANKING", "SBIN.NS": "BANKING",
@@ -66,16 +48,6 @@ SECTOR_MAP = {
     "TATASTEEL.NS": "METAL", "JSWSTEEL.NS": "METAL", "HINDALCO.NS": "METAL",
     "RELIANCE.NS": "ENERGY", "ONGC.NS": "ENERGY", "BPCL.NS": "ENERGY", "COALINDIA.NS": "ENERGY"
 }
-
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
-OPEN = datetime.time(9, 15)
-CLOSE = datetime.time(15, 30)
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-def resolve_path(rel_path: str) -> str:
-    p = os.path.join(BASE_DIR, rel_path)
-    return p if os.path.exists(p) else rel_path
 
 DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
 DEFAULT_CONFIG_FILE = resolve_path("trader/config.json")
@@ -104,14 +76,6 @@ DEFAULT_CONFIG = {
     "vix_max": 24.0,
     "blocked": []
 }
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def ist_to_utc(local):
-    return local.replace(tzinfo=None) - IST_OFFSET
 
 
 def parse_now(text):

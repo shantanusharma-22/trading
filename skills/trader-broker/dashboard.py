@@ -16,18 +16,16 @@ import sys
 import time
 import urllib.request
 
-DEFAULT_PORTFOLIO_FILE = "trader/portfolio.json"
-DEFAULT_PLAN_FILE = "trader/plan.json"
-DEFAULT_ALERTS_FILE = "trader/alerts.json"
-DEFAULT_BROKER_STATE = "trader/state/broker.json"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
-FLAT_BY = datetime.time(15, 10)
+from common import FLAT_BY, IST_OFFSET, UA, load_json, resolve_path, save_json, to_ist
 
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
+DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
+DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
+DEFAULT_ALERTS_FILE = resolve_path("trader/alerts.json")
+DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
 
 
 def fetch_live_price(sym):
@@ -120,7 +118,7 @@ def show_dashboard():
     holdings = p_data.get("holdings", {})
 
     print("==================================================")
-    print(f"ANTIGRAVITY DAY TRADER COMMAND CENTER (NSE)")
+    print("VYAPAR AI COMMAND CENTER (NSE)")
     print("==================================================")
     print(f"Time: {now_ist.strftime('%Y-%m-%d %H:%M:%S IST')} | Square-Off Deadline: 15:10 IST")
 

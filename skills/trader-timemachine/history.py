@@ -16,13 +16,13 @@ import sys
 import time
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
-DB_PATH = "trader/data/history.db"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
+from common import IST_OFFSET, UA, resolve_path, to_ist
 
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
+DB_PATH = resolve_path("trader/data/history.db")
 
 
 def get_connection():

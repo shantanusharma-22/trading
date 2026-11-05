@@ -16,20 +16,19 @@ import os
 import sqlite3
 import sys
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(BASE_DIR, "trader", "data", "journal.db")
-CONFIG_PATH = os.path.join(BASE_DIR, "trader", "config.json")
-BROKER_STATE_PATH = os.path.join(BASE_DIR, "trader", "state", "broker.json")
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import BASE_DIR, load_json, resolve_path
+
+DB_PATH = resolve_path("trader/data/journal.db")
+CONFIG_PATH = resolve_path("trader/config.json")
+BROKER_STATE_PATH = resolve_path("trader/state/broker.json")
 
 
 def load_config():
-    if os.path.exists(CONFIG_PATH):
-        try:
-            with open(CONFIG_PATH, "r", encoding="utf-8-sig") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
+    return load_json(CONFIG_PATH)
 
 
 def get_db_connection(db_path=None):

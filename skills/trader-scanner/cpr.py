@@ -17,15 +17,13 @@ import sys
 import time
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
-DEFAULT_UNIVERSE = "trader/universe.txt"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
+from common import UA, normalize_symbol, resolve_path
 
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
+DEFAULT_UNIVERSE = resolve_path("trader/universe.txt")
 
 
 def fetch_prev_daily_bar(sym):

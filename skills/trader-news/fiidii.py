@@ -13,12 +13,11 @@ import os
 import sys
 import urllib.request
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
+from common import IST_OFFSET, UA, to_ist
 
 
 def fetch_fii_dii():

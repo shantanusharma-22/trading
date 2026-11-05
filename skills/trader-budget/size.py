@@ -16,16 +16,22 @@ import math
 import os
 import sys
 
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import resolve_path
+
 try:
     from tax_calculator import calculate_intraday_charges, format_charges_summary
 except ImportError:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from tax_calculator import calculate_intraday_charges, format_charges_summary
 
-DEFAULT_PLAN_FILE = "trader/plan.json"
-DEFAULT_CONFIG_FILE = "trader/config.json"
-DEFAULT_ORDERS_FILE = "trader/orders.json"
-DEFAULT_PORTFOLIO_FILE = "trader/portfolio.json"
+DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
+DEFAULT_CONFIG_FILE = resolve_path("trader/config.json")
+DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
+DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
 
 DEFAULT_CONFIG = {
     "budget": 100000.0,

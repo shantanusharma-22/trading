@@ -21,7 +21,12 @@ import time
 import urllib.error
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import IST_OFFSET, UA, normalize_symbol, resolve_path, to_ist
+
 YAHOO_HOSTS = ("query2.finance.yahoo.com", "query1.finance.yahoo.com")
 PAUSE = 0.5
 BACKOFF = 3.0
@@ -32,20 +37,8 @@ SESSION_BARS = 75       # 375 minutes / 5 = exactly 75 bars
 OPEN_MIN = 9 * 60 + 15  # 555 min from midnight
 CLOSE_MIN = 15 * 60 + 30# 930 min from midnight
 FLAT_BY_MIN = 15 * 60 + 10 # 910 min (15:10 IST)
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
 
-DEFAULT_PLAN_FILE = "trader/plan.json"
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
+DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
 
 
 _urlopen = urllib.request.urlopen

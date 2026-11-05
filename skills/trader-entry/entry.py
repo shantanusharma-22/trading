@@ -19,33 +19,29 @@ import time
 import urllib.error
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import (
+    CLOSE,
+    ENTRY_CUTOFF,
+    IST_OFFSET,
+    OPEN,
+    UA,
+    ist_to_utc,
+    normalize_symbol,
+    resolve_path,
+    to_ist,
+)
+
 YAHOO_HOSTS = ("query2.finance.yahoo.com", "query1.finance.yahoo.com")
 PAUSE = 0.5
 BACKOFF = 3.0
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
-OPEN = datetime.time(9, 15)
-CLOSE = datetime.time(15, 30)
 RANGE_END = datetime.time(9, 30)
-ENTRY_CUTOFF = datetime.time(14, 45)
 
-DEFAULT_ENTRY_FILE = "trader/entry.json"
-DEFAULT_WATCHLIST = "trader/watchlist.json"
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def ist_to_utc(local):
-    return local.replace(tzinfo=None) - IST_OFFSET
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
+DEFAULT_ENTRY_FILE = resolve_path("trader/entry.json")
+DEFAULT_WATCHLIST = resolve_path("trader/watchlist.json")
 
 
 def parse_now(text):

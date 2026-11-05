@@ -13,25 +13,19 @@ Usage:
     python main.py test                # Run 12/12 automated unit test suite
 """
 
-import os
-import sys
-import json
-import subprocess
 import datetime
+import json
+import os
+import subprocess
+import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE = os.path.join(BASE_DIR, "trader", "config.json")
-PORTFOLIO_FILE = os.path.join(BASE_DIR, "trader", "portfolio.json")
+sys.path.insert(0, os.path.join(BASE_DIR, "skills"))
 
+from common import load_json, resolve_path, save_json
 
-def load_json(path, default=None):
-    if not os.path.exists(path):
-        return default or {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return default or {}
+CONFIG_FILE = resolve_path("trader/config.json")
+PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
 
 
 def print_header(title):

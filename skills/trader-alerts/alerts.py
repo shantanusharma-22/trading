@@ -24,67 +24,31 @@ import time
 import urllib.error
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import (
+    CALENDAR_YEARS,
+    CLOSE,
+    FLAT_BY,
+    IST_OFFSET,
+    NSE_HOLIDAYS,
+    OPEN,
+    UA,
+    ist_to_utc,
+    normalize_symbol,
+    resolve_path,
+    to_ist,
+)
+
 PAUSE = 0.5
 BACKOFF = 2.0
 YAHOO_HOSTS = ("query2.finance.yahoo.com", "query1.finance.yahoo.com")
 
-NSE_HOLIDAYS = {
-    "2026-01-26": "Republic Day",
-    "2026-03-03": "Holi",
-    "2026-03-20": "Id-Ul-Fitr (Ramzan Id)",
-    "2026-04-03": "Good Friday",
-    "2026-04-14": "Dr. Baba Saheb Ambedkar Jayanti",
-    "2026-05-01": "Maharashtra Day",
-    "2026-05-27": "Bakri Id (Id-Ul-Zuha)",
-    "2026-06-26": "Muharram",
-    "2026-08-15": "Independence Day",
-    "2026-09-16": "Milad-un-Nabi",
-    "2026-10-02": "Mahatma Gandhi Jayanti",
-    "2026-10-20": "Dussehra",
-    "2026-11-08": "Diwali Laxmi Pujan (Muhurat Trading in evening)",
-    "2026-11-24": "Gurunanak Jayanti",
-    "2026-12-25": "Christmas Day",
-    "2027-01-26": "Republic Day",
-    "2027-03-10": "Id-Ul-Fitr",
-    "2027-03-22": "Holi",
-    "2027-03-26": "Good Friday",
-    "2027-04-14": "Dr. Baba Saheb Ambedkar Jayanti",
-    "2027-05-01": "Maharashtra Day",
-    "2027-05-17": "Bakri Id",
-    "2027-06-16": "Muharram",
-    "2027-08-15": "Independence Day",
-    "2027-10-02": "Mahatma Gandhi Jayanti",
-    "2027-10-09": "Dussehra",
-    "2027-10-29": "Diwali Laxmi Pujan",
-    "2027-11-14": "Gurunanak Jayanti",
-    "2027-12-25": "Christmas Day",
-}
-
-CALENDAR_YEARS = (2026, 2027)
-OPEN = datetime.time(9, 15)
-CLOSE = datetime.time(15, 30)
-FLAT_BY = datetime.time(15, 10)
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
-
 DEFAULT_FILE = "trader/alerts.json"
 PRICES_FILE = "trader/prices.json"
 DEFAULT_CONFIG = "trader/config.json"
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def ist_to_utc(local):
-    return local.replace(tzinfo=None) - IST_OFFSET
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
 
 
 def parse_now(text):
@@ -436,7 +400,7 @@ def cmd_check(args):
 
 def cmd_test_notify(args):
     print("Testing push notification dispatch...")
-    dispatch_push_notification("Antigravity Test Alert", "Test notification from Indian Trading Suite.")
+    dispatch_push_notification("Vyapar AI Test Alert", "Test notification from Vyapar AI Trading Suite.")
     print("Test completed.")
     sys.exit(0)
 

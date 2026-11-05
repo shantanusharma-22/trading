@@ -17,8 +17,13 @@ import sys
 import urllib.request
 import zipfile
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-BHAV_DIR = "trader/data/bhavcopy"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import UA, resolve_path
+
+BHAV_DIR = resolve_path("trader/data/bhavcopy")
 
 
 def get_latest_bhav_url(date_obj):

@@ -26,7 +26,7 @@ Implements all 20 classical and institutional NSE/BSE intraday strategies:
     18. Sector Momentum Leader
     19. FII/DII Institutional Flow + GIFT Nifty Global Bias
   Custom Multi-Factor Master Model:
-    20. Antigravity Institutional Confluence (AIC-20) [0-100 pts]
+    20. Vyapar Institutional Confluence (AIC-20) [0-100 pts]
 
 Standard library only. No external dependencies required.
 """
@@ -39,8 +39,11 @@ import os
 import sys
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import IST_OFFSET, UA, normalize_symbol, resolve_path, to_ist
 
 
 # =====================================================================
@@ -279,7 +282,7 @@ STRATEGY_REGISTRY = {
     "aic_confluence": {
         "id": "aic_confluence",
         "num": 20,
-        "name": "Antigravity Institutional Confluence (AIC-20)",
+        "name": "Vyapar Institutional Confluence (AIC-20)",
         "style": "Custom Multi-Factor",
         "win_rate": "68% - 74%",
         "risk_reward": "1 : 2.2",
@@ -1155,7 +1158,7 @@ def eval_fiidii_flow():
 
 
 def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
-    """20. CUSTOM: Antigravity Institutional Confluence (AIC-20) Master Model.
+    """20. CUSTOM: Vyapar Institutional Confluence (AIC-20) Master Model.
     Scores setups from 0 to 100 points across 6 uncorrelated institutional pillars:
       1. Microstructure CPR (15 pts)
       2. VWAP Benchmark (20 pts)
@@ -1283,7 +1286,7 @@ def eval_aic_confluence(symbol, candles, prev_bar, vix=13.5, breadth_ratio=1.3):
 
     return {
         "strategy_id": "aic_confluence",
-        "strategy_name": "Antigravity Institutional Confluence (AIC-20)",
+        "strategy_name": "Vyapar Institutional Confluence (AIC-20)",
         "signal": side if is_executable else "NEUTRAL",
         "raw_signal": side,
         "score": score,

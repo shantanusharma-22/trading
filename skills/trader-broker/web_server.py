@@ -26,11 +26,14 @@ CONFIG_FILE = os.path.join(BASE_DIR, "trader", "config.json")
 PORTFOLIO_FILE = os.path.join(BASE_DIR, "trader", "portfolio.json")
 EVENTS_FILE = os.path.join(BASE_DIR, "trader", "events.json")
 
+sys.path.insert(0, os.path.join(BASE_DIR, "skills"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-alerts"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-scanner"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-analyst"))
 sys.path.insert(0, os.path.join(BASE_DIR, "skills", "trader-risk"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from common import FLAT_BY, IST_OFFSET, load_json, resolve_path, save_json, to_ist, to_tv_symbol
 
 try:
     import alerts
@@ -49,22 +52,6 @@ CACHE = {
     "pivots": {"data": {}, "ts": 0},
     "swing": {"data": {}, "ts": 0}
 }
-
-
-def load_json(path, default=None):
-    if not os.path.exists(path):
-        return default or {}
-    try:
-        with open(path, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except Exception:
-        return default or {}
-
-
-def save_json(path, data):
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
 
 
 def get_squareoff_countdown():

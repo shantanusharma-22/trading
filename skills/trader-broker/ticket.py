@@ -18,15 +18,16 @@ import json
 import os
 import sys
 
-DEFAULT_ORDERS_FILE = "trader/orders.json"
-DEFAULT_RISK_STATE = "trader/state/risk.json"
-DEFAULT_BROKER_STATE = "trader/state/broker.json"
-DEFAULT_PORTFOLIO_FILE = "trader/portfolio.json"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
+from common import IST_OFFSET, resolve_path, to_ist
 
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
+DEFAULT_ORDERS_FILE = resolve_path("trader/orders.json")
+DEFAULT_RISK_STATE = resolve_path("trader/state/risk.json")
+DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
+DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
 
 
 def compute_fingerprint(order: dict) -> str:

@@ -23,20 +23,13 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-DEFAULT_STATE = "trader/state/insider.json"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
 
+from common import IST_OFFSET, UA, normalize_symbol, resolve_path, to_ist
 
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
+DEFAULT_STATE = resolve_path("trader/state/insider.json")
 
 
 _urlopen = urllib.request.urlopen

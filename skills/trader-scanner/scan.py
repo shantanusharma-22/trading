@@ -23,16 +23,26 @@ import time
 import urllib.error
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import (
+    CLOSE,
+    IST_OFFSET,
+    OPEN,
+    UA,
+    ist_to_utc,
+    normalize_symbol,
+    resolve_path,
+    to_ist,
+)
+
 YAHOO_HOSTS = ("query2.finance.yahoo.com", "query1.finance.yahoo.com")
 PAUSE = 0.3
 BACKOFF = 3.0
-DEFAULT_UNIVERSE = "trader/universe.txt"
-DEFAULT_WATCHLIST = "trader/watchlist.json"
-
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
-OPEN = datetime.time(9, 15)
-CLOSE = datetime.time(15, 30)
+DEFAULT_UNIVERSE = resolve_path("trader/universe.txt")
+DEFAULT_WATCHLIST = resolve_path("trader/watchlist.json")
 
 DEFAULT_INDIAN_UNIVERSE = [
     ("RELIANCE.NS", "Reliance Industries Ltd", "ENERGY"),
@@ -92,21 +102,6 @@ DEFAULT_INDIAN_UNIVERSE = [
 ]
 
 NSE_EQUITY_L_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
-
-
-def ist_to_utc(local):
-    return local.replace(tzinfo=None) - IST_OFFSET
-
-
-def normalize_symbol(sym: str) -> str:
-    s = sym.strip().upper()
-    if s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
 
 
 def parse_now(text):

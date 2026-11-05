@@ -12,46 +12,23 @@ Features:
 
 import datetime
 import json
+import os
+import sys
 import time
 import urllib.error
 import urllib.request
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import UA, normalize_symbol, to_tv_symbol
+
 IST_OFFSET_SECONDS = 19800  # 5 hours 30 minutes in seconds
 
 # In-memory caches (5-second TTL)
 _CANDLES_CACHE = {}  # key: (symbol, interval, range_str) -> {"data": dict, "ts": float}
 _QUOTES_CACHE = {}   # key: symbol -> {"data": dict, "ts": float}
-
-
-def to_tv_symbol(sym: str) -> str:
-    """Maps ticker to TradingView embed symbol.
-    Uses BSE exchange prefix (e.g. BSE:TCS) because free TradingView embeds
-    often fail on NSE prefixes or fall back to foreign listings like Axon GETTEX.
-    """
-    if not sym:
-        return "BSE:RELIANCE"
-    s = sym.strip().upper()
-    if ":" in s:
-        return s
-    if s == "^NSEI":
-        return "NSE:NIFTY"
-    if s == "^NSEBANK":
-        return "NSE:BANKNIFTY"
-    if s == "^BSESN":
-        return "BSE:SENSEX"
-    if s == "^INDIAVIX":
-        return "NSE:INDIAVIX"
-    base = s.replace(".NS", "").replace(".BO", "").strip()
-    return f"BSE:{base}"
-
-
-def normalize_symbol(sym: str) -> str:
-    """Normalizes symbol to Yahoo Finance ticker format (defaults to .NS)."""
-    s = sym.strip().upper()
-    if s.startswith("^") or s.endswith(".NS") or s.endswith(".BO"):
-        return s
-    return s + ".NS"
 
 
 def get_default_range(interval: str) -> str:

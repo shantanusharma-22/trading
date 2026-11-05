@@ -16,9 +16,13 @@ import sys
 import time
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; day-trader-skill-india/1.0; +https://github.com/antigravity)"
-DEFAULT_BREADTH_STATE = "trader/state/breadth.json"
-IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import IST_OFFSET, UA, resolve_path, to_ist
+
+DEFAULT_BREADTH_STATE = resolve_path("trader/state/breadth.json")
 
 NIFTY_50_CORE = [
     "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
@@ -29,10 +33,6 @@ NIFTY_50_CORE = [
     "M&M.NS", "ULTRACEMCO.NS", "ASIANPAINT.NS", "NESTLEIND.NS", "JSWSTEEL.NS",
     "TATASTEEL.NS", "TECHM.NS", "WIPRO.NS", "HINDALCO.NS", "CIPLA.NS"
 ]
-
-
-def to_ist(utc):
-    return utc.replace(tzinfo=None) + IST_OFFSET
 
 
 def fetch_quote_change(sym):

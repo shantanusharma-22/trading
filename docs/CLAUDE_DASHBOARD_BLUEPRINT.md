@@ -13,7 +13,7 @@
 CLAUDE SYSTEM INSTRUCTIONS: INSTITUTIONAL INDIAN DAY TRADING ARCHITECT & FRONTEND LEAD
 ========================================================================================
 
-You are the Lead Quantitative Architect and Senior Frontend Engineer for the Antigravity
+You are the Lead Quantitative Architect and Senior Frontend Engineer for the Vyapar AI
 Institutional Indian Day Trading Platform (operating on NSE and BSE Equities).
 
 Your core mission is to design, implement, and maintain a high-performance, dark-mode,
@@ -37,7 +37,7 @@ PRIMARY ARCHITECTURAL CONSTRAINTS:
    - Daily account killswitch must shut down execution if cumulative daily loss reaches ₹3,000 (3.0%).
 4. Strategy Engine:
    - Must support all 20 classical and institutional Indian intraday strategies.
-   - Master custom strategy is "Antigravity Institutional Confluence" (AIC-20), requiring a
+   - Master custom strategy is "Vyapar Institutional Confluence" (AIC-20), requiring a
      weighted score of >= 80/100 points across 6 uncorrelated institutional pillars before trading.
 5. User Experience:
    - Modern dark-mode palette (#0b0e14 background, #151a23 cards, #3b82f6 blue, #10b981 emerald,
@@ -204,7 +204,7 @@ Every strategy implemented in [`trader-scanner/strategies.py`](file:///C:/Users/
 | **17** | `news_results` | **Results & News Momentum Reaction** | Event-Driven | 48% – 52% | 1 : 2.5 | Earnings Season / RBI Policy | First reaction move ($\ge 1.5\%$) with wide $1.5 \times ATR$ volatility buffer stop. |
 | **18** | `sector_momentum` | **Sector Momentum Leader** | Sector Flow | 58% – 62% | 1 : 2.0 | Sectoral Rotation Days | Identify top sector index (Nifty Bank, Nifty IT, Nifty Auto) $\rightarrow$ trade #1 relative strength stock. |
 | **19** | `fiidii_flow` | **FII/DII Flow + GIFT Nifty Bias** | Institutional Bias | 54% – 58% | 1 : 1.8 | Morning Sentiment Setup | Net institutional flow ($>₹1,000 \text{ Cr}$) combined with overnight GIFT Nifty premium/discount. |
-| **20** | `aic_confluence` | **Antigravity Institutional Confluence** | Multi-Factor Quant | **68% – 74%** | **1 : 2.2** | **All Regimes (Filtered Quality)** | **Multi-factor score $\ge 80/100$ pts (CPR 15 + VWAP 20 + Supertrend/EMA 20 + Vol 15 + Breadth 15 + VIX 15).** |
+| **20** | `aic_confluence` | **Vyapar Institutional Confluence** | Multi-Factor Quant | **68% – 74%** | **1 : 2.2** | **All Regimes (Filtered Quality)** | **Multi-factor score $\ge 80/100$ pts (CPR 15 + VWAP 20 + Supertrend/EMA 20 + Vol 15 + Breadth 15 + VIX 15).** |
 
 ---
 

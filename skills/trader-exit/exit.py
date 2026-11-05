@@ -14,8 +14,14 @@ import json
 import os
 import sys
 
-DEFAULT_ENTRY_FILE = "trader/entry.json"
-DEFAULT_PLAN_FILE = "trader/plan.json"
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import resolve_path
+
+DEFAULT_ENTRY_FILE = resolve_path("trader/entry.json")
+DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
 FLAT_BY_DEFAULT = "15:10"
 
 
