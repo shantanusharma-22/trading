@@ -181,3 +181,4 @@ stateDiagram-v2
    - **F&O Futures**: STT 0.05% on sell turnover (Finance Act 2026-27).
    - **F&O Options**: STT 0.15% on sell premium (Finance Act 2026-27).
    - **Statutory Rounding**: All Securities Transaction Tax rounded to the nearest whole rupee (`ROUND_HALF_UP`).
+

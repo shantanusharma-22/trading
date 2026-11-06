@@ -49,3 +49,4 @@ Currently, news and corporate filings are parsed using RSS feeds, keyword matchi
   1. Hardware Security Module (HSM) / FIDO2 token integration for order signing.
   2. Multi-signature consensus requiring two independent risk managers to authorize live broker switching.
   3. Immutable cryptographic audit log replication to off-site append-only storage.
+

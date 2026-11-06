@@ -44,3 +44,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Introduction of 20 Indian Intraday Strategies and AIC-20 Confluence Model.
 - CPR & Camarilla engine (`cpr.py`), Bhavcopy delivery scanner (`bhavcopy.py`), and pre-open scanner (`preopen.py`).
 - Basic local web dashboard with vendored TradingView Lightweight Charts v4.2.0.
+

@@ -142,3 +142,4 @@ All 12 findings have been remediated and verified through 76 automated regressio
 - **Impact**: Cross-origin web pages running in a user's browser could theoretically invoke API endpoints on localhost.
 - **Remediation**: Bound server strictly to `127.0.0.1`, restricted CORS headers to localhost origin, generated `SESSION_CSRF_TOKEN`, and enforced CSRF validation on all state-mutating POST routes.
 - **Status**: **RESOLVED** (Verified in web server security suite).
+
