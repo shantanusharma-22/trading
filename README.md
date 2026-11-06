@@ -91,28 +91,34 @@ The platform is strictly calibrated to the real-world operational rules of India
 
 ## Installation & Quick Start
 
-### 1. Prerequisites
-- **Python 3.10 or higher** installed on Windows, macOS, or Linux.
-- Git (optional, for cloning).
-
-### 2. Setup
+### 1. Automated Multi-Target Skill Suite Installer (Recommended)
+Run the built-in installer to configure your local environment and all AI assistants simultaneously:
 ```bash
-# Clone the repository (or extract the zip)
-git clone https://github.com/your-username/trading.git
-cd trading
+python install.py --target all --verify
 ```
+This automatically initializes:
+- **Local CLI Wrappers**: `vyapar.cmd` (Windows) and `vyapar.sh` (macOS/Linux).
+- **Claude Code**: Installs 20 skills directly into `.claude/skills/`.
+- **Google Antigravity & Gemini**: Verifies 9 registered skills in `.agent/skills/`.
+- **Cursor**: Configures `.cursorrules` with fail-closed safety parameters.
+- **Verification Suite**: Runs the 76-test regression suite to verify complete system integrity.
 
-### 3. Verify System Health
+### 2. Manual Verification
 Run the comprehensive automated unit test suite:
 ```bash
 python main.py test
 # Or directly via unittest:
 python -m unittest tests/test_indian_market.py
 ```
-*All 72 institutional unit and contract tests run and pass in ~5.2s using only Python's standard library.*
+*All 76 institutional unit and contract tests run and pass in ~5-15s using only Python's standard library.*
 
-### 4. Launch Unified Master Console
+### 3. Launch Unified Master Console
 ```bash
+# Using CLI launcher wrapper
+vyapar          # Windows
+./vyapar.sh     # macOS / Linux
+
+# Or directly via Python:
 python main.py
 ```
 This opens the interactive terminal orchestrator:
@@ -136,6 +142,7 @@ This opens the interactive terminal orchestrator:
  [11] Configure Telegram / Discord Push Alerts
  [12] 🌐 Launch Interactive Web Dashboard (Browser UI)
  [13] 📊 All 20 Intraday Strategies Library & Signals
+ [14] 📦 Install Skill Suite (Claude / Antigravity / Cursor / Local)
  [0] Exit
 ------------------------------------------------------------
 ```
@@ -328,9 +335,11 @@ Unlike standard international trading software, **Vyapar AI** features a built-i
 
 | Charge | Statutory Rate | Applied On |
 | :--- | :--- | :--- |
-| **Securities Transaction Tax (STT)** | 0.025% | Sell-side turnover (Equities intraday) |
+| **STT (Equity Intraday)** | 0.025% (Rounded to nearest ₹1) | Sell-side turnover |
+| **STT (F&O Futures)** | 0.05% (Finance Act 2026-27) | Sell-side turnover |
+| **STT (F&O Options)** | 0.15% (Finance Act 2026-27) | Sell-side premium turnover |
 | **Stamp Duty** | 0.003% (₹300 per crore) | Buy-side turnover |
-| **Exchange Turnover Charges** | 0.00297% | Total turnover (Buy + Sell) |
+| **Exchange Turnover Charges** | 0.00297% NSE / 0.00375% BSE | Total turnover (Buy + Sell) |
 | **SEBI Turnover Fee** | 0.0001% (₹10 per crore) | Total turnover |
 | **Goods & Services Tax (GST)** | 18.0% | Brokerage + Exchange fees + SEBI charges |
 | **Discount Brokerage** | ₹20 per executed order | Fixed rate per order (₹40 round-trip) |
@@ -469,6 +478,8 @@ All endpoints return JSON and are accessible at `http://127.0.0.1:8765`:
 | `/api/trade/exit` | `POST` | Position square-off with SQLite trade journal logging |
 | `/api/panic` | `POST` | Emergency liquidation of all active positions |
 | `/api/analytics/summary` | `GET` | Win rate, profit factor, SQN, and charges summary |
+| `/api/v1/bootstrap` | `GET` | Consolidated startup payload with ETag caching and CSRF token |
+| `/api/v1/stream` | `GET` | Server-Sent Events (SSE) real-time stream (clock, VIX, autotrader) |
 
 ---
 
@@ -480,9 +491,12 @@ The test suite in [`tests/test_indian_market.py`](tests/test_indian_market.py) p
 python -m unittest tests/test_indian_market.py
 ```
 
-### Coverage Highlights (72 Comprehensive Tests)
+### Coverage Highlights (76 Comprehensive Tests)
+- **Finance Act 2026-27 STT & Rounding**: Verified statutory nearest-rupee rounding (`ROUND_HALF_UP`) and post-April 2026 STT rates across Equities, Futures, and Options.
+- **SQLite WAL Mode & Concurrency**: Multi-threaded concurrency testing verifying zero database locked operational errors under load.
+- **Atomic File Persistence**: Proof that state file writes utilize tempfile swapping and atomic replace under thread lock.
 - **Timezone & Session Calendar**: Bidirectional UTC/IST mapping, 75 five-minute bars per session, boundary time testing (09:14, 09:15, 14:45, 15:10, 15:30), weekend/holiday skipping.
-- **API Contracts & UI Shapes**: Shape, empty, and error contract tests for all 18 REST endpoints without live network dependency.
+- **API Contracts & UI Shapes**: Shape, empty, and error contract tests for all REST endpoints without live network dependency.
 - **Pre-Trade Risk Gates & Safeguards**: Fail-closed gate validation, side-aware risk calculation (longs & shorts), daily loss limit, consecutive loss killswitch, high-water mark profit lock, VIX bounds, and macro blackout days.
 - **Position Sizing Property Tests**: 50 randomized iterations proving orders never breach risk caps, capital limits, or tick size constraints.
 - **Resilient Data Layer**: Exponential backoff, in-flight request deduplication, HTTP 429 rate limit cooldowns, and timeout fallbacks.
