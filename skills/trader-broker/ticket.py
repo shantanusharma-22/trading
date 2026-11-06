@@ -402,6 +402,15 @@ def execute_fill(symbol: str, side: str, qty: int, price: float,
                     "pnl": 0.0
                 }
 
+            record_placed_trade({
+                "symbol": symbol,
+                "side": "BUY",
+                "qty": qty,
+                "entry_price": price,
+                "stop_loss_price": stop,
+                "take_profit_price": target,
+                "strategy_id": strategy
+            }, now_ist=now_ist, broker_state_path=b_file)
             save_json(p_file, p_data)
             return True, f"Filled BUY {qty} {symbol} @ Rs {price:.2f}. Deducted statutory fees Rs {charges:.2f}. Cash: Rs {cash:,.2f}", p_data
 
@@ -463,6 +472,15 @@ def execute_fill(symbol: str, side: str, qty: int, price: float,
                 "pnl": 0.0
             }
 
+            record_placed_trade({
+                "symbol": symbol,
+                "side": "SELL",
+                "qty": qty,
+                "entry_price": price,
+                "stop_loss_price": stop,
+                "take_profit_price": target,
+                "strategy_id": strategy
+            }, now_ist=now_ist, broker_state_path=b_file)
             save_json(p_file, p_data)
             return True, f"Filled SHORT {qty} {symbol} @ Rs {price:.2f}. Locked margin Rs {margin_required:,.2f}. Cash: Rs {cash:,.2f}", p_data
 

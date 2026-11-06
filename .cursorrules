@@ -1,0 +1,15 @@
+# Project Rules: Vyapar AI (NSE/BSE Indian Equities)
+# Standard-library Python only on the server; zero mandatory pip dependencies.
+
+## SAFETY INVARIANTS:
+1. Paper mode is the permanent default. Never add or enable live order placement.
+2. Risk checks fail CLOSED: any exception, missing data, or unreadable config blocks the action. Never `except: pass` around a risk or order path.
+3. Never invent data. No hardcoded fallback prices, scores, win rates, or 'verified' labels.
+4. Every number shown to the user carries its source and as-of time.
+5. Never print or commit secrets. Read tokens from environment variables; mask them in output; keep trader/config.json out of git.
+
+## Microstructure & Concurrency:
+- Exchange hours: 09:15 to 15:30 IST. Intraday MIS square-off at 15:10 IST.
+- State persistence: All state files written atomically via tempfile + os.replace under STATE_LOCK.
+- SQLite databases: Enforce WAL mode (`PRAGMA journal_mode=WAL; busy_timeout=5000;`).
+- One holdings schema: `{"qty", "entry_price", "side", "stop", "target", "current_price", "margin_used", "strategy", "placed_at"}`.

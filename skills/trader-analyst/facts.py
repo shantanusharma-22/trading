@@ -22,7 +22,7 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import UA, normalize_symbol
+from common import UA, atomic_write_json, normalize_symbol
 
 YAHOO_HOSTS = ("query2.finance.yahoo.com", "query1.finance.yahoo.com")
 PAUSE = 0.5
@@ -133,9 +133,7 @@ def main():
         print(json.dumps(results, indent=2))
 
     if args.metrics:
-        os.makedirs(os.path.dirname(os.path.abspath(args.metrics)), exist_ok=True)
-        with open(args.metrics, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2)
+        atomic_write_json(args.metrics, results)
         print(f"Saved analyst metrics to {args.metrics}")
     sys.exit(0)
 

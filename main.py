@@ -231,6 +231,11 @@ def cmd_ui(port: int = 8765, open_browser: bool = True) -> int:
     return run_subcommand("skills/trader-broker/web_server.py", cmd_args)
 
 
+def cmd_install(args: list = None) -> int:
+    print_header("INSTALLING SKILL SUITE")
+    return run_subcommand("install.py", args or [])
+
+
 def interactive_menu():
     while True:
         print_header("VYAPAR AI - SMARTER TRADES FOR BHARAT")
@@ -251,10 +256,11 @@ def interactive_menu():
         print(" [11] Configure Telegram / Discord Push Alerts")
         print(" [12] Launch Interactive Web Dashboard (Browser UI)")
         print(" [13] All 20 Intraday Strategies Library & Signals")
+        print(" [14] Install Skill Suite (Claude / Antigravity / Cursor / Local)")
         print(" [0] Exit")
         print("-" * 60)
 
-        choice = input("Select an option (0-13): ").strip()
+        choice = input("Select an option (0-14): ").strip()
         if choice == "1":
             cmd_status()
         elif choice == "2":
@@ -281,11 +287,13 @@ def interactive_menu():
             cmd_ui()
         elif choice == "13":
             cmd_strategies()
+        elif choice == "14":
+            cmd_install()
         elif choice in ("0", "q", "exit"):
             print("\nExiting Vyapar AI Console. Smarter Trades for Bharat!\n")
             break
         else:
-            print("\nInvalid choice, please select 0 to 13.")
+            print("\nInvalid choice, please select 0 to 14.")
         
         input("\nPress Enter to return to menu...")
 
@@ -327,9 +335,11 @@ def main():
             rc = cmd_notify_test()
         elif cmd in ("strategies", "strategy", "strat", "aic"):
             rc = cmd_strategies(rest)
+        elif cmd in ("install", "setup", "skills"):
+            rc = cmd_install(rest)
         else:
             print(f"Unknown command: {cmd}")
-            print("Supported commands: status, pivots, preopen, scan, swing, ui, panic, journal, test, notify, strategies")
+            print("Supported commands: status, pivots, preopen, scan, swing, ui, panic, journal, test, notify, strategies, install")
             sys.exit(1)
         sys.exit(rc if rc is not None else 0)
     else:

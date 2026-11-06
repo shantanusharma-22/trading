@@ -689,6 +689,10 @@
       <span style="padding: 5px 10px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 12px; color: var(--text-sub)" id="brokerModeTag">
         Paper · Angel One data
       </span>
+      <button type="button" onclick="openCommandPalette()" style="height: 38px; padding: 0 12px; background: var(--card-cockpit); border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-sub); font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Command Palette (Ctrl+K)">
+        <span>🔍 Search / Nav</span>
+        <span class="command-palette-kbd" style="font-size: 10px; padding: 1px 5px;">Ctrl+K</span>
+      </button>
       <button type="button" onclick="openDecisionLogModal()" style="height: 38px; padding: 0 12px; background: var(--card-cockpit); border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-sub); font-size: 12px; font-weight: 500; cursor: pointer;" title="Open risk gate audit log">
         📋 Risk Log
       </button>
@@ -756,6 +760,18 @@
 
       <!-- ==================== VIEW 1: TRADING COCKPIT (#/trade) ==================== -->
       <div id="viewTrading" class="view-container active">
+        <!-- ==================== 8-STAGE ALGORITHMIC PIPELINE STEPPER ==================== -->
+        <div class="pipeline-stepper" style="display: flex; align-items: center; justify-content: space-between; background: var(--card-cockpit); border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; font-size: 11px; font-family: var(--font-mono); overflow-x: auto; gap: 6px;">
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 1. Scanner</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 2. News/Intel</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 3. Entry (AIC-20)</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 4. Exit Plan</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 5. TimeMachine</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--emerald); display: flex; align-items: center; gap: 4px;"><span>✓</span> 6. Budget/Sizing</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--brand-orange); font-weight: 700; display: flex; align-items: center; gap: 4px;"><span>●</span> 7. Risk Gate</span> <span style="color: var(--border-light);">➔</span>
+          <span style="color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><span>○</span> 8. Broker Paper</span>
+        </div>
+
         <!-- ==================== SESSION TIMELINE RIBBON ==================== -->
   <section aria-label="Session timeline" class="session-ribbon">
     <div class="ribbon-track">
@@ -3025,6 +3041,43 @@
 
       curSetupLevels = { entry, stop, target, shares, risk: totalRisk };
 
+      // Render Setup Price Lines (Entry, Stop, Target) on Lightweight Charts
+      if (typeof candleSeries !== "undefined" && candleSeries && entry > 0 && typeof LightweightCharts !== "undefined") {
+        if (!window.setupPriceLines) window.setupPriceLines = [];
+        window.setupPriceLines.forEach(l => {
+          try { candleSeries.removePriceLine(l); } catch(e) {}
+        });
+        window.setupPriceLines = [];
+        window.setupPriceLines.push(candleSeries.createPriceLine({
+          price: entry,
+          color: '#f28c28',
+          lineWidth: 2,
+          lineStyle: LightweightCharts.LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'ENTRY'
+        }));
+        if (stop > 0) {
+          window.setupPriceLines.push(candleSeries.createPriceLine({
+            price: stop,
+            color: '#f43f5e',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: 'STOP'
+          }));
+        }
+        if (target > 0) {
+          window.setupPriceLines.push(candleSeries.createPriceLine({
+            price: target,
+            color: '#10b981',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: 'TARGET'
+          }));
+        }
+      }
+
       // 3. Render Institutional Safety Checks from Real Backend Data
       const safetyCont = document.getElementById("safetyChecksContainer");
       safetyCont.innerHTML = "";
@@ -4173,13 +4226,16 @@
 
     const pageMap = {
       "trade": "viewTrading",
+      "cockpit": "viewTrading",
       "scanner": "viewScanner",
       "strategies": "viewStrategies",
       "journal": "viewJournal",
       "performance": "viewJournal",
       "risk": "viewRisk",
       "backtest": "viewBacktest",
+      "timemachine": "viewBacktest",
       "news": "viewNews",
+      "intel": "viewNews",
       "settings": "viewSettings"
     };
 
@@ -4912,7 +4968,104 @@
     }
   }
 
+  // ==================== COMMAND PALETTE (CTRL+K) ====================
+  const PALETTE_COMMANDS = [
+    { title: "⚡ Go to Trading Cockpit", shortcut: "Alt+1", action: () => { window.location.hash = "#/cockpit"; closeCommandPalette(); } },
+    { title: "🚀 Go to 15m ORB Scanner", shortcut: "Alt+2", action: () => { window.location.hash = "#/scanner"; closeCommandPalette(); } },
+    { title: "📊 Go to Strategies Matrix", shortcut: "Alt+3", action: () => { window.location.hash = "#/strategies"; closeCommandPalette(); } },
+    { title: "📓 Go to Trade Journal & SQN", shortcut: "Alt+4", action: () => { window.location.hash = "#/journal"; closeCommandPalette(); } },
+    { title: "🛡️ Go to Risk Radar & Audit Log", shortcut: "Alt+5", action: () => { window.location.hash = "#/risk"; closeCommandPalette(); } },
+    { title: "🔬 Go to TimeMachine Backtest", shortcut: "Alt+6", action: () => { window.location.hash = "#/timemachine"; closeCommandPalette(); } },
+    { title: "📰 Go to Institutional Intel & FII", shortcut: "Alt+7", action: () => { window.location.hash = "#/intel"; closeCommandPalette(); } },
+    { title: "⚙️ Go to System Settings", shortcut: "Alt+8", action: () => { window.location.hash = "#/settings"; closeCommandPalette(); } },
+    { title: "🛑 PANIC FLATTEN ALL POSITIONS", shortcut: "Shift+P", action: () => { closeCommandPalette(); openPanicModal(); } },
+    { title: "🤖 Toggle Auto-Trader Engine", shortcut: "", action: () => { closeCommandPalette(); toggleAutopilot(); } },
+    { title: "📈 Switch Symbol: RELIANCE.NS", shortcut: "", action: () => { closeCommandPalette(); selectStock("RELIANCE.NS"); } },
+    { title: "📈 Switch Symbol: TCS.NS", shortcut: "", action: () => { closeCommandPalette(); selectStock("TCS.NS"); } },
+    { title: "📈 Switch Symbol: HDFCBANK.NS", shortcut: "", action: () => { closeCommandPalette(); selectStock("HDFCBANK.NS"); } },
+    { title: "📈 Switch Symbol: INFY.NS", shortcut: "", action: () => { closeCommandPalette(); selectStock("INFY.NS"); } }
+  ];
+
+  function openCommandPalette() {
+    const modal = document.getElementById("commandPaletteModal");
+    const input = document.getElementById("commandPaletteInput");
+    if (!modal || !input) return;
+    modal.style.display = "flex";
+    input.value = "";
+    filterCommandPalette();
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closeCommandPalette() {
+    const modal = document.getElementById("commandPaletteModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function filterCommandPalette() {
+    const query = (document.getElementById("commandPaletteInput").value || "").trim().toLowerCase();
+    const list = document.getElementById("commandPaletteList");
+    if (!list) return;
+    list.innerHTML = "";
+    const filtered = PALETTE_COMMANDS.filter(c => c.title.toLowerCase().includes(query) || (query.startsWith("/") && c.title.toLowerCase().includes(query.slice(1))));
+    filtered.forEach((cmd, idx) => {
+      const item = document.createElement("div");
+      item.className = `command-palette-item ${idx === 0 ? "active" : ""}`;
+      item.innerHTML = `<span>${cmd.title}</span>${cmd.shortcut ? `<span class="command-palette-kbd">${cmd.shortcut}</span>` : ""}`;
+      item.onclick = cmd.action;
+      list.appendChild(item);
+    });
+  }
+
+  function handleCommandPaletteKey(e) {
+    const list = document.getElementById("commandPaletteList");
+    if (!list) return;
+    const items = list.querySelectorAll(".command-palette-item");
+    let activeIdx = Array.from(items).findIndex(el => el.classList.contains("active"));
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (items.length > 0) {
+        if (activeIdx >= 0) items[activeIdx].classList.remove("active");
+        activeIdx = (activeIdx + 1) % items.length;
+        items[activeIdx].classList.add("active");
+        items[activeIdx].scrollIntoView({ block: "nearest" });
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (items.length > 0) {
+        if (activeIdx >= 0) items[activeIdx].classList.remove("active");
+        activeIdx = (activeIdx - 1 + items.length) % items.length;
+        items[activeIdx].classList.add("active");
+        items[activeIdx].scrollIntoView({ block: "nearest" });
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIdx >= 0 && items[activeIdx]) {
+        items[activeIdx].click();
+      }
+    } else if (e.key === "Escape") {
+      closeCommandPalette();
+    }
+  }
+
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+      e.preventDefault();
+      openCommandPalette();
+    }
+  });
+
 </script>
+
+<!-- Command Palette Modal (Ctrl+K) -->
+<div id="commandPaletteModal" class="command-palette-backdrop" style="display: none;" onclick="if(event.target===this) closeCommandPalette()">
+  <div class="command-palette-card" onclick="event.stopPropagation()">
+    <input type="text" id="commandPaletteInput" class="command-palette-input" placeholder="Type a command or stock (e.g. RELIANCE, /scanner, /risk)..." oninput="filterCommandPalette()" onkeydown="handleCommandPaletteKey(event)">
+    <div id="commandPaletteList" class="command-palette-list">
+      <!-- Items populated dynamically -->
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

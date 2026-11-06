@@ -11,11 +11,35 @@ Features:
 
 import collections
 import json
+import os
 import re
+import sqlite3
 import threading
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
+from pathlib import Path
+
+@contextmanager
+def get_db_connection(db_path, timeout: float = 10.0):
+    """Context manager for thread-safe, concurrent SQLite access in WAL mode."""
+    p = Path(db_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(p), timeout=timeout)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -96,27 +120,24 @@ def fetch_json_with_retry(url: str, timeout: float = 8.0, max_retries: int = 2,
 
     # In-flight deduplication: if another thread is already fetching this exact URL, wait for it
     wait_event = None
+    is_worker = False
     with _IN_FLIGHT_LOCK:
         if url in _IN_FLIGHT:
             wait_event = _IN_FLIGHT[url]
         else:
             wait_event = threading.Event()
             _IN_FLIGHT[url] = wait_event
+            is_worker = True
 
-    if wait_event is not None and wait_event.is_set():
-        with _IN_FLIGHT_LOCK:
-            res, err = _IN_FLIGHT_RESULTS.get(url, (None, None))
-        if err:
-            raise err
-        return res
-    elif wait_event is not None and not _IN_FLIGHT[url] is wait_event:
-        # Wait on existing worker
+    if not is_worker:
+        # Wait on designated worker thread
         wait_event.wait(timeout=timeout + 5.0)
         with _IN_FLIGHT_LOCK:
             res, err = _IN_FLIGHT_RESULTS.get(url, (None, None))
         if err:
             raise err
-        return res
+        if res is not None:
+            return res
 
     # This thread is the designated worker for this URL
     last_err = None
@@ -164,16 +185,16 @@ def fetch_json_with_retry(url: str, timeout: float = 8.0, max_retries: int = 2,
             raise last_err
         raise RuntimeError(f"Failed to fetch data from {url}")
     except Exception as e:
-        with _IN_FLIGHT_LOCK:
-            _IN_FLIGHT_RESULTS[url] = (None, e)
-            wait_event.set()
+        if is_worker:
+            with _IN_FLIGHT_LOCK:
+                _IN_FLIGHT_RESULTS[url] = (None, e)
+                wait_event.set()
         raise
     finally:
-        with _IN_FLIGHT_LOCK:
-            if data is not None:
-                _IN_FLIGHT_RESULTS[url] = (data, None)
-            wait_event.set()
-            # Clean up in-flight dictionary after a short buffer
-            _IN_FLIGHT.pop(url, None)
-            _IN_FLIGHT_RESULTS.pop(url, None)
+        if is_worker:
+            with _IN_FLIGHT_LOCK:
+                if data is not None:
+                    _IN_FLIGHT_RESULTS[url] = (data, None)
+                wait_event.set()
+                _IN_FLIGHT.pop(url, None)
 

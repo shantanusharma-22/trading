@@ -36,6 +36,7 @@ from common import (
     NSE_HOLIDAYS,
     OPEN,
     UA,
+    atomic_write_json,
     ist_to_utc,
     normalize_symbol,
     resolve_path,
@@ -255,11 +256,7 @@ def load_alerts(path=DEFAULT_FILE):
 
 
 def save_alerts(data, path=DEFAULT_FILE):
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-    os.replace(tmp, path)
+    atomic_write_json(path, data)
 
 
 def add_alert(spec, path=DEFAULT_FILE):
@@ -335,6 +332,25 @@ def check_alerts(now_utc, offline=None, path=DEFAULT_FILE):
                 elif "below" in a and price <= a["below"]:
                     hit = True
                     reason = f"price Rs {price:.2f} fell below Rs {a['below']:.2f}"
+                elif "pct_up" in a and q.get("prev_close") and q["prev_close"] > 0:
+                    prev_c = float(q["prev_close"])
+                    pct = ((price - prev_c) / prev_c) * 100.0
+                    if pct >= float(a["pct_up"]):
+                        hit = True
+                        reason = f"price Rs {price:.2f} rose {pct:+.2f}% from previous close Rs {prev_c:.2f} (threshold: +{a['pct_up']}%)"
+                elif "pct_down" in a and q.get("prev_close") and q["prev_close"] > 0:
+                    prev_c = float(q["prev_close"])
+                    pct = ((price - prev_c) / prev_c) * 100.0
+                    threshold = -abs(float(a["pct_down"]))
+                    if pct <= threshold:
+                        hit = True
+                        reason = f"price Rs {price:.2f} fell {pct:+.2f}% from previous close Rs {prev_c:.2f} (threshold: {threshold:.2f}%)"
+                elif "pct_move" in a and q.get("prev_close") and q["prev_close"] > 0:
+                    prev_c = float(q["prev_close"])
+                    pct = ((price - prev_c) / prev_c) * 100.0
+                    if abs(pct) >= abs(float(a["pct_move"])):
+                        hit = True
+                        reason = f"price Rs {price:.2f} moved {pct:+.2f}% from previous close Rs {prev_c:.2f} (threshold: +/-{abs(float(a['pct_move']))}%)"
 
         if hit:
             a["rung"] = True

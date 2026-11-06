@@ -177,8 +177,13 @@ class AutoTraderEngine:
     def start(self, universe_mode=None):
         """Starts the autonomous trading loop, ensuring single-instance execution under lock."""
         with self.lock:
-            if self.running or (self.thread and self.thread.is_alive()):
-                return False, "Auto-Trader is already running."
+            if self.thread and self.thread.is_alive():
+                if self.running:
+                    return False, "Auto-Trader is already running."
+                # Thread was in process of stopping, wait for it
+                self.thread.join(timeout=3.0)
+                if self.thread.is_alive():
+                    return False, "Auto-Trader is already running."
 
             if universe_mode:
                 self.universe_mode = universe_mode
@@ -205,7 +210,7 @@ class AutoTraderEngine:
             th = self.thread
 
         if th and th.is_alive() and threading.current_thread() != th:
-            th.join(timeout=3.0)
+            th.join(timeout=5.0)
 
         self.add_log("Auto-Trader STOPPED by user.")
         return True, "Auto-Trader stopped."
@@ -362,6 +367,8 @@ class AutoTraderEngine:
         d_str = now_ist.strftime("%Y-%m-%d")
         candidates = []
         for sym in symbols:
+            if self.stop_event.is_set() or not self.running:
+                return
             try:
                 # 1. Cached Narrow CPR Filter (<0.25% width)
                 cache_key = (sym, d_str)
@@ -390,6 +397,8 @@ class AutoTraderEngine:
 
         # 2. Check Active Strategy on Candidates
         for sym, cpr_res in candidates:
+            if self.stop_event.is_set() or not self.running:
+                return
             try:
                 setup = self._evaluate_stock_strategy(sym, cpr_res)
                 if setup:

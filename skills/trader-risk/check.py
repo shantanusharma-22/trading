@@ -25,6 +25,11 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
+try:
+    import data_layer
+except Exception:
+    data_layer = None
+
 from common import (
     CLOSE,
     IST_OFFSET,
@@ -130,13 +135,16 @@ def load_events_fail_closed(path: str = DEFAULT_EVENTS_FILE) -> tuple:
 
 
 def fetch_india_vix():
-    """Fetches real-time India VIX (^INDIAVIX) from Yahoo Finance."""
+    """Fetches real-time India VIX (^INDIAVIX) from Yahoo Finance with caching and retry."""
+    url = "https://query2.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?range=1d&interval=1d"
     try:
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?range=1d&interval=1d"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (VyaparAI/1.0)"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
+        if data_layer and hasattr(data_layer, "fetch_json_with_retry"):
+            data = data_layer.fetch_json_with_retry(url, timeout=5.0, cache_ttl=60.0)
+        else:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (VyaparAI/1.0)"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        return float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
     except Exception:
         return None
 
@@ -489,25 +497,28 @@ def validate_order(order: dict, config: dict, now_ist: datetime.datetime, todays
 
 
 def log_risk_decision(order: dict, passed: bool, reason: str, now_ist: datetime.datetime):
-    """Records audit trail of all risk decisions to trader/state/decisions.json under STATE_LOCK."""
+    """Records audit trail of all risk decisions with SHA-256 fingerprint to trader/state/decisions.json under STATE_LOCK."""
+    dec_file = DEFAULT_DECISIONS_FILE
+    data = load_json(dec_file, default={"decisions": []})
+    decisions = data.get("decisions", [])
+    d_str = now_ist.strftime("%Y-%m-%d")
+    fp = compute_order_fingerprint(order, d_str)
+    entry = {
+        "timestamp": now_ist.strftime("%Y-%m-%d %H:%M:%S"),
+        "symbol": order.get("symbol", "UNKNOWN"),
+        "side": order.get("side", "BUY"),
+        "qty": order.get("qty", 0),
+        "entry_price": order.get("entry_price", 0.0),
+        "verdict": "PASS" if passed else "BLOCK",
+        "reason": reason,
+        "fingerprint": fp
+    }
+    decisions.insert(0, entry)
+    decisions = decisions[:100]  # keep latest 100
     try:
-        dec_file = DEFAULT_DECISIONS_FILE
-        data = load_json(dec_file) if os.path.exists(dec_file) else {"decisions": []}
-        decisions = data.get("decisions", [])
-        entry = {
-            "timestamp": now_ist.strftime("%Y-%m-%d %H:%M:%S"),
-            "symbol": order.get("symbol", "UNKNOWN"),
-            "side": order.get("side", "BUY"),
-            "qty": order.get("qty", 0),
-            "entry_price": order.get("entry_price", 0.0),
-            "verdict": "PASS" if passed else "BLOCK",
-            "reason": reason
-        }
-        decisions.insert(0, entry)
-        decisions = decisions[:100]  # keep latest 100
         save_json(dec_file, {"decisions": decisions})
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(f"[WARN] Failed to write risk decision log to {dec_file}: {e}\n")
 
 
 def pre_trade_gate(order: dict, config: dict = None, now_ist: datetime.datetime = None, vix=None) -> tuple:

@@ -20,7 +20,16 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import FLAT_BY, IST_OFFSET, UA, load_json, resolve_path, save_json, to_ist
+from common import (
+    FLAT_BY,
+    IST_OFFSET,
+    UA,
+    load_json,
+    record_closed_trade,
+    resolve_path,
+    save_json,
+    to_ist,
+)
 
 DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
 DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
@@ -65,18 +74,34 @@ def emergency_flatten_all() -> bool:
         if isinstance(h, dict):
             qty = int(h.get("qty", 0))
             entry_p = float(h.get("entry_price", 0.0))
+            side = str(h.get("side", "BUY")).upper()
+            margin_used = float(h.get("margin_used", 0.0))
         else:
             qty = int(h)
             entry_p = 0.0
+            side = "BUY"
+            margin_used = 0.0
 
         if qty > 0:
             price = fetch_live_price(sym)
             if price <= 0:
                 price = entry_p if entry_p > 0 else 0.0
-            realized_val = round(price * qty, 2)
-            total_recovered_cash += realized_val
-            closed_positions.append({"symbol": sym, "qty": qty, "price": price, "val": realized_val})
-            print(f"  [SOLD] {qty} shares of {sym} @ market price Rs {price:,.2f} -> Recovered Rs {realized_val:,.2f}")
+
+            if side == "BUY":
+                realized_val = round(price * qty, 2)
+                pnl = round((price - entry_p) * qty, 2) if entry_p > 0 else 0.0
+                total_recovered_cash += realized_val
+                closed_positions.append({"symbol": sym, "side": "SELL_FLATTEN", "qty": qty, "price": price, "val": realized_val, "pnl": pnl})
+                print(f"  [SOLD LONG] {qty} shares of {sym} @ market price Rs {price:,.2f} -> Recovered Rs {realized_val:,.2f} (PnL: Rs {pnl:+,.2f})")
+            else:
+                pnl = round((entry_p - price) * qty, 2) if entry_p > 0 else 0.0
+                recovered_margin = margin_used if margin_used > 0 else round(entry_p * qty * 0.20, 2)
+                net_recovered = round(recovered_margin + pnl, 2)
+                total_recovered_cash += net_recovered
+                closed_positions.append({"symbol": sym, "side": "BUY_COVER_FLATTEN", "qty": qty, "price": price, "val": net_recovered, "pnl": pnl})
+                print(f"  [COVERED SHORT] {qty} shares of {sym} @ market price Rs {price:,.2f} -> Recovered Margin+PnL Rs {net_recovered:,.2f} (PnL: Rs {pnl:+,.2f})")
+
+            record_closed_trade(sym, price, pnl, now_ist)
 
     p["cash"] = round(p.get("cash", 0.0) + total_recovered_cash, 2)
     p["holdings"] = {}
@@ -89,7 +114,7 @@ def emergency_flatten_all() -> bool:
     day_entry = b_state.setdefault(d_str, {"trades_today": [], "orders_placed": []})
     for cp in closed_positions:
         day_entry["orders_placed"].append({
-            "order": {"symbol": cp["symbol"], "side": "SELL_FLATTEN", "qty": cp["qty"], "price": cp["price"]},
+            "order": {"symbol": cp["symbol"], "side": cp["side"], "qty": cp["qty"], "price": cp["price"]},
             "approved_at_ist": now_ist.strftime("%H:%M:%S"),
             "status": "EMERGENCY_FLATTENED"
         })

@@ -19,11 +19,11 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import IST_OFFSET, UA, normalize_symbol, to_ist
+from common import IST_OFFSET, UA, create_nse_session_opener, normalize_symbol, to_ist
 
 
 def fetch_nse_preopen():
-    """Attempt query to official NSE pre-open data feed."""
+    """Attempt query to official NSE pre-open data feed with primed session."""
     url = "https://www.nseindia.com/api/market-data-pre-open?key=NIFTY"
     headers = {
         "User-Agent": UA,
@@ -31,8 +31,9 @@ def fetch_nse_preopen():
         "Referer": "https://www.nseindia.com/market-data/pre-open-market-cm-and-emerge-market"
     }
     try:
+        opener = create_nse_session_opener()
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with opener.open(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("data", [])
     except Exception:

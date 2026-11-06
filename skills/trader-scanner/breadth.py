@@ -20,7 +20,7 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import IST_OFFSET, UA, resolve_path, to_ist
+from common import IST_OFFSET, UA, atomic_write_json, resolve_path, to_ist
 
 DEFAULT_BREADTH_STATE = resolve_path("trader/state/breadth.json")
 
@@ -129,9 +129,7 @@ def main():
         print("Leading Draggers:" + ", ".join(f"{l['symbol']} ({l['change_pct']}%)" for l in res['top_losers']))
     print("==================================================")
 
-    os.makedirs(os.path.dirname(os.path.abspath(DEFAULT_BREADTH_STATE)), exist_ok=True)
-    with open(DEFAULT_BREADTH_STATE, "w", encoding="utf-8") as f:
-        json.dump(res, f, indent=2)
+    atomic_write_json(DEFAULT_BREADTH_STATE, res)
 
     if args.json:
         print(json.dumps(res, indent=2))

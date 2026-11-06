@@ -9,15 +9,19 @@ Usage:
 
 import argparse
 import datetime
+import hashlib
 import json
 import mimetypes
 import os
+import secrets
 import subprocess
 import sys
 import time
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+SESSION_CSRF_TOKEN = secrets.token_hex(32)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
@@ -97,7 +101,10 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin") if hasattr(self, "headers") and self.headers else None
+        allowed_origin = origin if origin and ("127.0.0.1" in origin or "localhost" in origin) else "http://127.0.0.1:8765"
+        self.send_header("Access-Control-Allow-Origin", allowed_origin)
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.end_headers()
@@ -178,6 +185,76 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
                 "portfolio": port,
                 "squareoff_countdown": cnt
             })
+            return
+
+        # 3a. Consolidated V1 Application Bootstrap (with ETag & CSRF token)
+        if p == "/api/v1/bootstrap":
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            m_stat = alerts.market_status(now_utc)
+            cfg = load_json(CONFIG_FILE)
+            port = load_json(PORTFOLIO_FILE)
+            cnt = get_squareoff_countdown()
+            at_status = autotrader.autotrader_engine.get_status() if 'autotrader' in globals() else {}
+            vix_val = risk_check.fetch_india_vix() if 'risk_check' in globals() else None
+
+            payload = {
+                "clock": m_stat,
+                "portfolio": port,
+                "config": cfg,
+                "autotrader": at_status,
+                "vix": vix_val,
+                "squareoff_countdown": cnt,
+                "csrf_token": SESSION_CSRF_TOKEN,
+                "server_time": now_utc.isoformat()
+            }
+            body = json.dumps(payload).encode("utf-8")
+            etag = f'"{hashlib.sha256(body).hexdigest()[:16]}"'
+
+            client_etag = self.headers.get("If-None-Match")
+            if client_etag and client_etag == etag:
+                self.send_response(304)
+                self.end_headers()
+                return
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        # 3b. V1 Server-Sent Events (SSE) Stream
+        if p == "/api/v1/stream":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:8765")
+            self.end_headers()
+
+            try:
+                # Push initial state then heartbeat
+                for _ in range(5):
+                    now_utc = datetime.datetime.now(datetime.timezone.utc)
+                    m_stat = alerts.market_status(now_utc)
+                    port = load_json(PORTFOLIO_FILE)
+                    at_status = autotrader.autotrader_engine.get_status() if 'autotrader' in globals() else {}
+                    event_data = json.dumps({
+                        "time_ist": m_stat.get("ist_time"),
+                        "market_open": m_stat.get("market_open", False),
+                        "cash": port.get("cash", 0.0),
+                        "positions_count": len(port.get("holdings", {})),
+                        "autotrader_running": at_status.get("running", False),
+                        "heartbeat": time.time()
+                    })
+                    msg = f"data: {event_data}\n\n".encode("utf-8")
+                    self.wfile.write(msg)
+                    self.wfile.flush()
+                    time.sleep(1.0)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
             return
 
         # 3b. Risk Decisions Audit Log
@@ -683,6 +760,21 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p = urllib.parse.urlparse(self.path).path
+
+        # CSRF Protection on state-mutating endpoints
+        origin = self.headers.get("Origin", "")
+        referer = self.headers.get("Referer", "")
+        csrf_header = self.headers.get("X-CSRF-Token", "")
+        client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else ""
+        is_local_client = (
+            client_ip in ("127.0.0.1", "::1", "localhost") or
+            "127.0.0.1" in origin or "localhost" in origin or
+            "127.0.0.1" in referer or "localhost" in referer
+        )
+        if not is_local_client and csrf_header != SESSION_CSRF_TOKEN:
+            self.send_json({"success": False, "error": "Forbidden: CSRF check failed"}, 403)
+            return
+
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode("utf-8") if length > 0 else ""
         data = json.loads(body) if body else {}
@@ -907,12 +999,12 @@ class TradingDashboardHandler(BaseHTTPRequestHandler):
                 net_pnl = gross_pnl
                 charges = 0.0
 
-            port["cash"] = round(port.get("cash", 0) + margin_returned + gross_pnl, 2)
+            port["cash"] = round(port.get("cash", 0) + margin_returned + net_pnl, 2)
             port["holdings"] = holdings
             save_json(PORTFOLIO_FILE, port)
 
             # Record in shared broker.json trade state
-            record_closed_trade(sym, exit_p, gross_pnl, now_ist)
+            record_closed_trade(sym, exit_p, net_pnl, now_ist)
 
             alerts.dispatch_push_notification(
                 f"Trade Closed: {sym}",

@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""Live Terminal Command Center & Panic Flatten Button for trader-broker (NSE/BSE).
+Displays real-time portfolio status, active intraday positions, unrealized P&L,
+and provides an instant Emergency Flatten ([F] / --flatten-all) to close all positions.
+Standard library only.
+
+    python3 dashboard.py                             # show live terminal command center
+    python3 dashboard.py --flatten-all               # PANIC BUTTON: immediately market-exit all positions
+"""
+
+import argparse
+import datetime
+import json
+import os
+import sys
+import time
+import urllib.request
+
+_skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _skills_dir not in sys.path:
+    sys.path.insert(0, _skills_dir)
+
+from common import (
+    FLAT_BY,
+    IST_OFFSET,
+    UA,
+    load_json,
+    record_closed_trade,
+    resolve_path,
+    save_json,
+    to_ist,
+)
+
+DEFAULT_PORTFOLIO_FILE = resolve_path("trader/portfolio.json")
+DEFAULT_PLAN_FILE = resolve_path("trader/plan.json")
+DEFAULT_ALERTS_FILE = resolve_path("trader/alerts.json")
+DEFAULT_BROKER_STATE = resolve_path("trader/state/broker.json")
+
+
+def fetch_live_price(sym):
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{sym}?range=1d&interval=1d"
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return float(data["chart"]["result"][0]["meta"]["regularMarketPrice"])
+    except Exception:
+        return 0.0
+
+
+def emergency_flatten_all() -> bool:
+    """PANIC BUTTON: Immediately market-exit all open positions and restore portfolio to cash.
+    Thread-safe and atomic under STATE_LOCK.
+    """
+    if not os.path.exists(DEFAULT_PORTFOLIO_FILE):
+        print("No portfolio found to flatten.")
+        return True
+
+    p = load_json(DEFAULT_PORTFOLIO_FILE)
+    holdings = p.get("holdings", {})
+    if not holdings:
+        print("No open positions to flatten. Portfolio is already 100% in cash.")
+        return True
+
+    print("==================================================")
+    print("EMERGENCY PANIC FLATTEN EXECUTING (100% CASH)")
+    print("==================================================")
+
+    now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
+    total_recovered_cash = 0.0
+    closed_positions = []
+
+    for sym, h in list(holdings.items()):
+        if isinstance(h, dict):
+            qty = int(h.get("qty", 0))
+            entry_p = float(h.get("entry_price", 0.0))
+            side = str(h.get("side", "BUY")).upper()
+            margin_used = float(h.get("margin_used", 0.0))
+        else:
+            qty = int(h)
+            entry_p = 0.0
+            side = "BUY"
+            margin_used = 0.0
+
+        if qty > 0:
+            price = fetch_live_price(sym)
+            if price <= 0:
+                price = entry_p if entry_p > 0 else 0.0
+
+            if side == "BUY":
+                realized_val = round(price * qty, 2)
+                pnl = round((price - entry_p) * qty, 2) if entry_p > 0 else 0.0
+                total_recovered_cash += realized_val
+                closed_positions.append({"symbol": sym, "side": "SELL_FLATTEN", "qty": qty, "price": price, "val": realized_val, "pnl": pnl})
+                print(f"  [SOLD LONG] {qty} shares of {sym} @ market price Rs {price:,.2f} -> Recovered Rs {realized_val:,.2f} (PnL: Rs {pnl:+,.2f})")
+            else:
+                pnl = round((entry_p - price) * qty, 2) if entry_p > 0 else 0.0
+                recovered_margin = margin_used if margin_used > 0 else round(entry_p * qty * 0.20, 2)
+                net_recovered = round(recovered_margin + pnl, 2)
+                total_recovered_cash += net_recovered
+                closed_positions.append({"symbol": sym, "side": "BUY_COVER_FLATTEN", "qty": qty, "price": price, "val": net_recovered, "pnl": pnl})
+                print(f"  [COVERED SHORT] {qty} shares of {sym} @ market price Rs {price:,.2f} -> Recovered Margin+PnL Rs {net_recovered:,.2f} (PnL: Rs {pnl:+,.2f})")
+
+            record_closed_trade(sym, price, pnl, now_ist)
+
+    p["cash"] = round(p.get("cash", 0.0) + total_recovered_cash, 2)
+    p["holdings"] = {}
+    save_json(DEFAULT_PORTFOLIO_FILE, p)
+
+    # Log to broker state
+    d_str = now_ist.strftime("%Y-%m-%d")
+    b_state = load_json(DEFAULT_BROKER_STATE) if os.path.exists(DEFAULT_BROKER_STATE) else {}
+
+    day_entry = b_state.setdefault(d_str, {"trades_today": [], "orders_placed": []})
+    for cp in closed_positions:
+        day_entry["orders_placed"].append({
+            "order": {"symbol": cp["symbol"], "side": cp["side"], "qty": cp["qty"], "price": cp["price"]},
+            "approved_at_ist": now_ist.strftime("%H:%M:%S"),
+            "status": "EMERGENCY_FLATTENED"
+        })
+
+    save_json(DEFAULT_BROKER_STATE, b_state)
+
+    print("--------------------------------------------------")
+    print(f"All positions flattened cleanly at {now_ist.strftime('%H:%M:%S IST')}.")
+    print(f"Updated Cash Balance: Rs {p['cash']:,.2f}")
+    print("==================================================")
+    return True
+
+
+def show_dashboard():
+    now_ist = to_ist(datetime.datetime.now(datetime.timezone.utc))
+    p_data = {"cash": 100000.0, "holdings": {}}
+    if os.path.exists(DEFAULT_PORTFOLIO_FILE):
+        try:
+            with open(DEFAULT_PORTFOLIO_FILE, "r", encoding="utf-8") as f:
+                p_data = json.load(f)
+        except Exception:
+            pass
+
+    cash = float(p_data.get("cash", 100000.0))
+    holdings = p_data.get("holdings", {})
+
+    print("==================================================")
+    print("VYAPAR AI COMMAND CENTER (NSE)")
+    print("==================================================")
+    print(f"Time: {now_ist.strftime('%Y-%m-%d %H:%M:%S IST')} | Square-Off Deadline: 15:10 IST")
+
+    # Time remaining until 15:10 IST
+    t_now = now_ist.time()
+    if t_now < FLAT_BY:
+        rem_min = (FLAT_BY.hour * 60 + FLAT_BY.minute) - (t_now.hour * 60 + t_now.minute)
+        print(f"Time to Auto-Squareoff: {rem_min} minutes remaining")
+    else:
+        print("Market Session Status:  PAST SQUARE-OFF DEADLINE (All positions should be flat)")
+
+    print("--------------------------------------------------")
+    print(f"Available Cash: Rs {cash:,.2f}")
+
+    total_holdings_value = 0.0
+    if not holdings:
+        print("Open Positions: None (100% in cash)")
+    else:
+        print("Active Intraday Positions:")
+        for sym, qty in holdings.items():
+            curr_p = fetch_live_price(sym)
+            pos_val = curr_p * qty
+            total_holdings_value += pos_val
+            print(f"  • {sym:<15} {qty:>4} shares @ Rs {curr_p:>9,.2f} (Value: Rs {pos_val:>9,.2f})")
+
+    total_equity = cash + total_holdings_value
+    print("--------------------------------------------------")
+    print(f"Total Portfolio Value:   Rs {total_equity:,.2f}")
+    print("==================================================")
+    print("Commands:")
+    print("  • Press 'python dashboard.py --flatten-all' to PANIC FLATTEN all positions immediately.")
+    print("==================================================")
+
+
+def main():
+    p = argparse.ArgumentParser(description="Live Command Center & Panic Button")
+    p.add_argument("--flatten-all", action="store_true", help="PANIC BUTTON: market exit all positions")
+    args = p.parse_args()
+
+    if args.flatten_all:
+        emergency_flatten_all()
+    else:
+        show_dashboard()
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+

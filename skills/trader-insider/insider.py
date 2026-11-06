@@ -27,7 +27,14 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import IST_OFFSET, UA, normalize_symbol, resolve_path, to_ist
+from common import (
+    IST_OFFSET,
+    UA,
+    create_nse_session_opener,
+    normalize_symbol,
+    resolve_path,
+    to_ist,
+)
 
 DEFAULT_STATE = resolve_path("trader/state/insider.json")
 
@@ -63,9 +70,7 @@ def fetch_insider_news_rss(sym: str):
 
 
 def fetch_nse_pit_api():
-    """Attempt direct query to NSE PIT endpoint with cookie session."""
-    cj = http.cookiejar.CookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    """Attempt direct query to NSE PIT endpoint with primed cookie session."""
     headers = {
         "User-Agent": UA,
         "Accept": "application/json, text/plain, */*",
@@ -73,8 +78,7 @@ def fetch_nse_pit_api():
         "Referer": "https://www.nseindia.com/companies-listing/corporate-filings-insider-trading"
     }
     try:
-        # Pre-flight for session cookies
-        opener.open(urllib.request.Request("https://www.nseindia.com", headers=headers), timeout=5)
+        opener = create_nse_session_opener()
         api_url = "https://www.nseindia.com/api/corporates-pit?index=equities"
         resp = opener.open(urllib.request.Request(api_url, headers=headers), timeout=10)
         data = json.loads(resp.read().decode("utf-8"))

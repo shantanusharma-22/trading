@@ -7,11 +7,23 @@ Standard library only.
 
 import datetime
 import hashlib
+import http.cookiejar
 import json
 import os
 import sys
 import tempfile
 import threading
+import urllib.request
+from pathlib import Path
+
+# Configure UTF-8 on Windows console safely
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 # Thread lock for atomic shared state I/O
 STATE_LOCK = threading.RLock()
@@ -173,24 +185,55 @@ def load_json(path: str, default=None):
             return default if default is not None else {}
 
 
+def atomic_write_json(target_path, payload) -> None:
+    """Atomically writes JSON to disk using a temp file and os.replace under STATE_LOCK."""
+    with STATE_LOCK:
+        resolved = resolve_path(str(target_path))
+        p = Path(resolved)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(p.parent),
+            prefix=f".{p.name}.",
+            suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_name, str(p))
+        except Exception:
+            if os.path.exists(tmp_name):
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+            raise
+
+
 def save_json(path: str, data):
     """Atomically writes JSON file using a temp file and os.replace under shared lock."""
-    with STATE_LOCK:
-        resolved = resolve_path(path)
-        dir_path = os.path.dirname(os.path.abspath(resolved))
-        os.makedirs(dir_path, exist_ok=True)
-        # Write to temp file in same directory to ensure atomic rename on the same filesystem
-        temp_file = tempfile.NamedTemporaryFile("w", dir=dir_path, delete=False, encoding="utf-8")
-        try:
-            json.dump(data, temp_file, indent=2)
-            temp_file.flush()
-            os.fsync(temp_file.fileno())
-            temp_file.close()
-            os.replace(temp_file.name, resolved)
-        except Exception:
-            if os.path.exists(temp_file.name):
-                os.remove(temp_file.name)
-            raise
+    atomic_write_json(path, data)
+
+
+def create_nse_session_opener() -> urllib.request.OpenerDirector:
+    """Initializes a standard-library urllib opener with primed NSE session cookies."""
+    jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    headers = [
+        ("User-Agent", UA),
+        ("Accept", "application/json, text/plain, */*"),
+        ("Accept-Language", "en-US,en;q=0.9"),
+        ("Referer", "https://www.nseindia.com/"),
+    ]
+    opener.addheaders = headers
+    try:
+        req = urllib.request.Request("https://www.nseindia.com/", method="GET")
+        with opener.open(req, timeout=10):
+            pass
+    except Exception:
+        pass
+    return opener
 
 
 # =====================================================================

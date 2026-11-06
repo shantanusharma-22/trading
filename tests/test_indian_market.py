@@ -1415,9 +1415,15 @@ class TestEnhancedIndianMarketSuite(unittest.TestCase):
         """Prompt 9 Test: Contract test for /api/strategies/matrix shape and 20 strategies."""
         url = f"http://127.0.0.1:{self.port}/api/strategies/matrix?symbol=TCS.NS"
         req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=5.0) as resp:
-            self.assertEqual(resp.status, 200)
-            data = json.loads(resp.read().decode("utf-8"))
+        mock_candles = {
+            "symbol": "TCS.NS",
+            "candles": [{"time": 1700000000, "open": 3500.0, "high": 3520.0, "low": 3490.0, "close": 3510.0, "volume": 50000}],
+            "prev_bar": {"high": 3500.0, "low": 3450.0, "close": 3480.0}
+        }
+        with mock.patch("candles.get_candles", return_value=mock_candles):
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                self.assertEqual(resp.status, 200)
+                data = json.loads(resp.read().decode("utf-8"))
 
         self.assertEqual(data.get("symbol"), "TCS.NS")
         self.assertIn("matrix", data)
@@ -1635,6 +1641,68 @@ class TestEnhancedIndianMarketSuite(unittest.TestCase):
             self.assertLessEqual(qty_sell * entry, max_order_inr + 1e-4)
             self.assertLessEqual(qty_sell * entry, investable_cash + 1e-4)
             self.assertEqual(res_sell["side"], "SELL")
+
+    def test_post_april_2026_stt_rates_and_rounding(self):
+        """Verify revised Finance Act 2026 STT rates and statutory nearest-rupee rounding."""
+        from decimal import Decimal
+        # 1. Equity Intraday: STT is 0.025% on sell turnover, rounded to nearest rupee
+        res_intra = tax_calculator.calculate_indian_trade_charges(1000.0, 1000.0, 100, segment="EQUITY_INTRADAY")
+        self.assertEqual(res_intra["stt"], Decimal("25"))
+
+        # E.g. sell turnover = 1750 * 1 = 1750. 1750 * 0.00025 = 0.4375 -> rounds to 0
+        res_intra_round_down = tax_calculator.calculate_indian_trade_charges(1750.0, 1750.0, 1, segment="EQUITY_INTRADAY")
+        self.assertEqual(res_intra_round_down["stt"], Decimal("0"))
+
+        # E.g. sell turnover = 2500 * 1 = 2500. 2500 * 0.00025 = 0.625 -> rounds to 1
+        res_intra_round_up = tax_calculator.calculate_indian_trade_charges(2500.0, 2500.0, 1, segment="EQUITY_INTRADAY")
+        self.assertEqual(res_intra_round_up["stt"], Decimal("1"))
+
+        # 2. F&O Futures: revised rate 0.05% on sell turnover (Finance Act 2026)
+        res_fut = tax_calculator.calculate_indian_trade_charges(1000.0, 1000.0, 100, segment="FNO_FUTURES")
+        self.assertEqual(res_fut["stt"], Decimal("50"))
+
+        # 3. F&O Options: revised rate 0.15% on sell premium (Finance Act 2026)
+        res_opt = tax_calculator.calculate_indian_trade_charges(100.0, 100.0, 200, segment="FNO_OPTIONS")
+        self.assertEqual(res_opt["stt"], Decimal("30"))
+
+        # 4. Delivery: 0.1% on buy + 0.1% on sell
+        res_del = tax_calculator.calculate_indian_trade_charges(1000.0, 1000.0, 100, segment="EQUITY_DELIVERY")
+        self.assertEqual(res_del["stt"], Decimal("200"))
+        self.assertEqual(res_del["dp_charge"], Decimal("15.34"))
+
+    def test_sqlite_wal_mode_and_concurrency(self):
+        """Verify SQLite WAL mode and busy timeout configuration via get_db_connection."""
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_db = Path(tmpdir) / "test_wal.db"
+            with data_layer.get_db_connection(test_db) as conn:
+                cur = conn.cursor()
+                mode = cur.execute("PRAGMA journal_mode;").fetchone()[0]
+                timeout = cur.execute("PRAGMA busy_timeout;").fetchone()[0]
+                self.assertEqual(mode.upper(), "WAL")
+                self.assertGreaterEqual(timeout, 5000)
+
+    def test_atomic_write_json(self):
+        """Verify atomic_write_json safely persists JSON and handles directory creation."""
+        import common
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "sub" / "test_state.json"
+            common.atomic_write_json(target, {"status": "ok", "count": 42})
+            loaded = common.load_json(str(target))
+            self.assertEqual(loaded.get("status"), "ok")
+            self.assertEqual(loaded.get("count"), 42)
+
+    def test_create_nse_session_opener(self):
+        """Verify create_nse_session_opener returns a valid urllib OpenerDirector with headers."""
+        import common
+        opener = common.create_nse_session_opener()
+        self.assertIsInstance(opener, urllib.request.OpenerDirector)
+        header_keys = [h[0].lower() for h in opener.addheaders]
+        self.assertIn("user-agent", header_keys)
+        self.assertIn("referer", header_keys)
 
     def test_coverage_summary(self):
         """Prompt 9 Test: Print a verified coverage summary confirming all core modules have tests."""

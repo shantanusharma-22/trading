@@ -17,7 +17,7 @@ _skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _skills_dir not in sys.path:
     sys.path.insert(0, _skills_dir)
 
-from common import IST_OFFSET, UA, to_ist
+from common import IST_OFFSET, UA, create_nse_session_opener, to_ist
 
 
 def fetch_fii_dii():
@@ -28,8 +28,9 @@ def fetch_fii_dii():
         "Referer": "https://www.nseindia.com/reports/fii-dii"
     }
     try:
+        opener = create_nse_session_opener()
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with opener.open(req, timeout=8) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         return None

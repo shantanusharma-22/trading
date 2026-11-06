@@ -22,33 +22,51 @@ Built with **100% Python Standard Library** (zero mandatory `pip` dependencies),
 1. [Key Features](#key-features)
 2. [Indian Market Microstructure Architecture](#indian-market-microstructure-architecture)
 3. [Installation & Quick Start](#installation--quick-start)
-4. [Clean Subfolder Structure](#clean-subfolder-structure)
-5. [Complete Library of 20 Indian Intraday Strategies](#complete-library-of-20-indian-intraday-strategies)
-6. [The AIC-20 Confluence Ensemble Model](#the-aic-20-confluence-ensemble-model)
-7. [Autonomous AutoTrader Engine](#autonomous-autotrader-engine)
-8. [Institutional Risk Gates & Safeguards](#institutional-risk-gates--safeguards)
-9. [Statutory SEBI Taxes & Net P&L Engine](#statutory-sebi-taxes--net-pl-engine)
-10. [Supported Broker Providers](#supported-broker-providers)
-11. [Universal AI Agent Support (All AI Providers)](#universal-ai-agent-support-all-ai-providers)
-12. [Interactive Web Dashboard & REST API](#interactive-web-dashboard--rest-api)
-13. [Automated Unit Verification](#automated-unit-verification)
-14. [Compliance & Disclaimer](#compliance--disclaimer)
+4. [Institutional Documentation Package](#institutional-documentation-package)
+5. [Clean Subfolder Structure](#clean-subfolder-structure)
+6. [Complete Library of 20 Indian Intraday Strategies](#complete-library-of-20-indian-intraday-strategies)
+7. [The AIC-20 Confluence Ensemble Model](#the-aic-20-confluence-ensemble-model)
+8. [Autonomous AutoTrader Engine](#autonomous-autotrader-engine)
+9. [Institutional Risk Gates & Safeguards](#institutional-risk-gates--safeguards)
+10. [Statutory SEBI Taxes & Net P&L Engine](#statutory-sebi-taxes--net-pl-engine)
+11. [Supported Broker Providers](#supported-broker-providers)
+12. [Universal AI Agent Support (All AI Providers)](#universal-ai-agent-support-all-ai-providers)
+13. [Interactive Web Dashboard & REST API](#interactive-web-dashboard--rest-api)
+14. [Automated Unit Verification](#automated-unit-verification)
+15. [Compliance & Disclaimer](#compliance--disclaimer)
 
 ---
 
 ## Key Features
 
 - **Zero Mandatory Dependencies**: Runs entirely on Python's built-in libraries (`sqlite3`, `json`, `urllib`, `datetime`, `threading`, `math`, `hashlib`). No fragile pip packages required.
+- **Universal Multi-Target Installer**: Automated setup (`python install.py --target all --verify`) configuring Claude Code, Google Antigravity / Gemini, Cursor, and local CLI wrappers.
 - **Universal AI Interoperability**: Every trading package contains a standard `SKILL.md` compliant with Anthropic Claude (Claude Code, Desktop MCP), OpenAI (GPT-4o, Agents SDK), Google Gemini / Antigravity, Cursor / Windsurf, and local LLMs (Ollama, DeepSeek-R1).
 - **20 Verified Indian Intraday Strategies**: Complete implementation spanning Opening Range Breakouts (ORB), CPR/Camarilla, VWAP, Supertrend, 9/20 EMA cross, RSI Divergence, 9:20 Straddle, Expiry Buying, and FII/DII flow.
 - **AIC-20 Confluence Engine**: Evaluates all 20 strategies simultaneously per 5-minute bar and normalizes them into a composite 0–100 institutional conviction score.
 - **Autonomous AutoTrader**: Universal stock scanner across Nifty 50 and liquid F&O constituents with setup qualification, automated ₹1,000 risk-capped position sizing, 1.5x ATR trailing stops, and 15:10 IST square-off.
 - **Institutional Pre-Trade Risk Gates**: Enforces C1 sizing rejection, C3 server validation, C4 pre-trade gate, C5 mid-day risk locking, High-Water Mark Daily Profit Lock, 2-consecutive losses killswitch, macro event blackouts (RBI MPC & Union Budget), Thursday weekly expiry cutoff, and India VIX filters.
-- **True Net P&L Engine**: Automatically computes STT (0.025%), Stamp Duty, NSE turnover fees, SEBI turnover charges, GST (18%), brokerage, and execution slippage.
-- **Institutional SQLite Trade Journal**: Persistent `trades` and `risk_state` schemas storing trade history, Win Rate, Profit Factor, Expectancy, and System Quality Number (SQN).
-- **Offline TradingView Lightweight Charts**: Vendored local v4.2.0 charting library with automatic BSE symbol mapping fallback, CPR/Camarilla overlays, and intraday VWAP lines.
+- **Finance Act 2026-27 Tax Engine**: Statutory Indian transaction costs with revised STT (Futures 0.05%, Options 0.15%), nearest-rupee rounding, Stamp Duty, NSE turnover fees, SEBI turnover charges, GST (18%), and slippage.
+- **Institutional SQLite Trade Journal**: Persistent `trades` and `risk_state` schemas in WAL mode storing trade history, Win Rate, Profit Factor, Expectancy, and System Quality Number (SQN).
+- **Offline TradingView Lightweight Charts**: Vendored local v4.2.0 charting library with automatic BSE symbol mapping fallback, CPR/Camarilla overlays, intraday VWAP lines, and setup price lines (`ENTRY`, `STOP`, `TARGET`).
+- **Command Palette & Keyboard Control**: Instant navigation via `Ctrl + K`, 5-view SPA hash routing (`#/cockpit`, `#/scanner`, `#/intel`, `#/timemachine`, `#/journal`), and tabular numerals (`font-variant-numeric: tabular-nums;`).
 - **Multi-Broker Failover**: Default zero-risk Paper Trading simulator alongside API payload generators and instant failover switches for **Zerodha Kite Connect**, **Angel One SmartAPI**, and **Shoonya (Finvasia)**.
 - **Mobile Push Notifications**: Real-time trade fills, stop hits, profit targets, 09:15 opening bell, and 15:10 square-off reminders dispatched via **Telegram Bot** and **Discord Webhooks**.
+
+---
+
+## Institutional Documentation Package
+
+Comprehensive institutional engineering documentation is available in the [`docs/`](docs/) directory:
+
+| Document | Description |
+|---|---|
+| [**`docs/PROJECT_REPORT.md`**](docs/PROJECT_REPORT.md) | 15-Section Comprehensive Project Audit, Architecture & Transformation Report |
+| [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md) | System Design Manual with 4 Mermaid Architecture & State Diagrams |
+| [**`docs/CODE_REVIEW.md`**](docs/CODE_REVIEW.md) | Forensic Code Review Ledger documenting CR-01 through CR-12 Remediations |
+| [**`docs/SETUP_GUIDE.md`**](docs/SETUP_GUIDE.md) | Developer & Operator Setup Manual for Windows, macOS, and Linux |
+| [**`docs/CHANGELOG.md`**](docs/CHANGELOG.md) | Semantic Release History (v1.0.0 to v2.0.0 Institutional Upgrade) |
+| [**`docs/ROADMAP.md`**](docs/ROADMAP.md) | 4-Phase Future Engineering Roadmap (F&O, WebSockets, ML, HSM) |
 
 ---
 
